@@ -40,7 +40,11 @@ import kotlin.math.sqrt
  * and JSON events ride the oai-events data channel. The worker swaps our SDP offer for OpenAI's answer.
  */
 /** What the practice screen needs from a live interview. LiveClient is the real one, tests use a fake. */
+/** Where a starting interview is, for the waiting ui. */
+enum class ConnectStep { Idle, Mic, Calling, Joining, Ready }
+
 interface LiveSession {
+    val step: StateFlow<ConnectStep>
     val events: SharedFlow<LiveEvent>
     val interviewerLevel: StateFlow<Float>
     val candidateLevel: StateFlow<Float>
@@ -56,6 +60,13 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
 
     private val _events = MutableSharedFlow<LiveEvent>(replay = 0, extraBufferCapacity = 512)
     override val events: SharedFlow<LiveEvent> = _events
+
+    private val _step = MutableStateFlow(ConnectStep.Idle)
+    override val step: StateFlow<ConnectStep> = _step
+    private var greeted = false
+    private var firstWords = false
+    private var t0 = 0L
+    private fun mark(label: String) = Log.i(TAG, "timing ${android.os.SystemClock.elapsedRealtime() - t0}ms $label")
 
     // 0..1, how loud each side is right now, drives the orb and ticks
     private val _interviewerLevel = MutableStateFlow(0f)
@@ -76,6 +87,10 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         private set
 
     override suspend fun start(setup: InterviewSetup): SessionResponse {
+        t0 = android.os.SystemClock.elapsedRealtime()
+        greeted = false
+        firstWords = false
+        _step.value = ConnectStep.Mic
         initWebRtc(app)
         closed = CompletableDeferred()
         routeToSpeaker(true)
@@ -100,7 +115,8 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
 
         val gathered = CompletableDeferred<Unit>()
         val config = PeerConnection.RTCConfiguration(
-            listOf(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()),
+            // no stun: OpenAI's side is public, our host candidates reach it, and gathering is done in a few ms instead of seconds
+            emptyList(),
         ).apply { sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN }
 
         val pc = pcf.createPeerConnection(config, object : PeerConnection.Observer {
@@ -139,16 +155,29 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
             override fun onMessage(buffer: DataChannel.Buffer) {
                 val bytes = ByteArray(buffer.data.remaining()).also { buffer.data.get(it) }
                 val event = parseEvent(bytes.decodeToString())
+                if (event is LiveEvent.Started) {
+                    mark("session started")
+                    _step.value = ConnectStep.Ready
+                }
+                if (event is LiveEvent.Delta && event.speaker == Speaker.interviewer && _step.value != ConnectStep.Idle && !firstWords) {
+                    firstWords = true
+                    mark("first interviewer words")
+                }
                 if (event is LiveEvent.Closed) closed.complete(event)
                 _events.tryEmit(event)
             }
         })
         val offer = pc.awaitOffer()
         pc.awaitLocal(offer)
-        withTimeoutOrNull(5_000) { gathered.await() }
+        mark("offer created")
+        withTimeoutOrNull(1_500) { gathered.await() }
+        mark("candidates gathered")
+        _step.value = ConnectStep.Calling
         val sdp = pc.localDescription?.description ?: error("no local description")
 
         val response = api.session(sdp, setup)
+        mark("worker answered")
+        _step.value = ConnectStep.Joining
         session = response
         pc.awaitRemote(SessionDescription(SessionDescription.Type.ANSWER, response.sdp))
         if (dc.state() == DataChannel.State.OPEN) greet(response.greeting)
@@ -185,12 +214,18 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         channel = null; peer = null; mic = null; source = null; factory = null; adm = null
         _interviewerLevel.value = 0f
         _candidateLevel.value = 0f
+        _step.value = ConnectStep.Idle
         routeToSpeaker(false)
     }
 
+    // the channel can open before or after the answer lands, whichever comes second sends it, once
+    @Synchronized
     private fun greet(greeting: String) {
+        if (greeted) return
+        greeted = true
+        mark("greeting sent")
         val content = JsonPrimitive(greeting).toString()
-        send("""{"type":"session.instructions.append","delegation_id":null,"content":$content}""")
+        send("""{"type":"session.commentary.append","delegation_id":null,"content":$content}""")
     }
 
     private fun send(text: String) {

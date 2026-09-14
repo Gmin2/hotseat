@@ -12,7 +12,7 @@ every POST needs `x-hotseat-key` (the `APP_KEY` secret) and should send `x-devic
   "style": "friendly|sharp", "role": "Android engineer", "minutes": 15, "jobPost": "only for the job round" }
 ```
 returns `201 { id, sdp, greeting, maxSeconds }`. apply `sdp` as the answer, and once the `oai-events` data channel opens send
-`{ "type": "session.instructions.append", "delegation_id": null, "content": greeting }` so the interviewer speaks first.
+`{ "type": "session.commentary.append", "delegation_id": null, "content": greeting }` so the interviewer speaks first. commentary is what makes it reliable, instructions.append often left the interviewer silent until the candidate spoke.
 the app should close the session at `maxSeconds`.
 
 **`POST /report`** scores a finished interview with `gpt-5.6-luna`

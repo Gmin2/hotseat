@@ -12,13 +12,13 @@ const appKey = process.env.APP_KEY ?? "dev"
 mkdirSync(out, { recursive: true })
 writeFileSync(`${out}/events.jsonl`, "")
 
-const pc = new RTCPeerConnection({ bundlePolicy: "max-bundle", iceServers: [{ urls: "stun:stun.l.google.com:19302" }] })
+const pc = new RTCPeerConnection({ bundlePolicy: "max-bundle", iceServers: process.env.STUN ? [{ urls: "stun:stun.l.google.com:19302" }] : [] })
 const mic = new MediaStreamTrack({ kind: "audio" })
 const audio = pc.addTransceiver(mic, { direction: "sendrecv" })
 const events = pc.createDataChannel("oai-events")
 
 let heard = 0
-audio.onTrack.subscribe((t) => t.onReceiveRtp.subscribe(() => heard++))
+audio.onTrack.subscribe((t) => t.onReceiveRtp.subscribe(() => heard++ === 0 && mark("first audio packet")))
 
 const started = Date.now()
 const turns = []
@@ -37,14 +37,17 @@ events.onMessage.subscribe((raw) => {
   const text = raw.toString()
   appendFileSync(`${out}/events.jsonl`, text + "\n")
   const e = JSON.parse(text)
+  if (e.type === "session.output_transcript.delta" && !turns.some((t) => t.speaker === "interviewer")) mark("first interviewer words")
   if (e.type === "session.output_transcript.delta") add("interviewer", e.delta, e.start_ms, e.end_ms)
   else if (e.type === "session.input_transcript.delta") add("candidate", e.delta, e.start_ms, e.end_ms)
   else console.log(`${((Date.now() - started) / 1000).toFixed(1)}s`, e.type, e.reason ?? e.error?.code ?? "")
   if (e.type === "session.closed") closed(e)
 })
 
+const mark = (label) => console.log(`${((Date.now() - started) / 1000).toFixed(2)}s ${label}`)
 await pc.setLocalDescription(await pc.createOffer())
 if (pc.iceGatheringState !== "complete") await new Promise((r) => pc.iceGatheringStateChange.subscribe((s) => s === "complete" && r()))
+mark("offer ready")
 
 const res = await fetch(`${base}/session`, {
   method: "POST",
@@ -52,13 +55,14 @@ const res = await fetch(`${base}/session`, {
   body: JSON.stringify({ sdp: pc.localDescription.sdp, ...JSON.parse(bodyJson) }),
 })
 const body = await res.json()
+mark("worker answered")
 console.log("worker:", res.status, body.id ?? body)
 if (!res.ok) process.exit(1)
 await pc.setRemoteDescription({ type: "answer", sdp: body.sdp })
 
 await new Promise((r) => events.stateChanged.subscribe((s) => s === "open" && r()))
-const greeting = body.greeting ?? process.env.GREET
-if (greeting) events.send(JSON.stringify({ type: "session.instructions.append", delegation_id: null, content: greeting }))
+const greeting = process.env.GREET ?? body.greeting
+if (greeting) events.send(JSON.stringify({ type: process.env.GREET_TYPE ?? "session.commentary.append", delegation_id: null, content: greeting }))
 
 // ffmpeg plays the candidate file in real time as opus rtp, we forward each packet into the mic track
 const udp = createSocket("udp4")
