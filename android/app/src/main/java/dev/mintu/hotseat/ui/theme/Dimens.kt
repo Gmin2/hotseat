@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 
 object Dimens {
     val gutter = 24.dp
+    val heroIllustration = 240.dp
 
     val chipInset = 16.dp
     val chipWidth = 82.dp

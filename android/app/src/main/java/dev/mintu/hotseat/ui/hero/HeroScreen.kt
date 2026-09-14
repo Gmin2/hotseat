@@ -30,7 +30,16 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -115,6 +124,8 @@ fun HeroScreen(
             )
         }
 
+        FloatingChair(Modifier.align(Alignment.Center).offset(y = (-36).dp))
+
         Column(Modifier.align(Alignment.BottomStart).fillMaxWidth()) {
             Row(
                 Modifier.fillMaxWidth().padding(start = Dimens.gutter, end = 28.dp),
@@ -143,6 +154,35 @@ fun HeroScreen(
 }
 
 @Composable
+private fun FloatingChair(modifier: Modifier = Modifier) {
+    val drift = rememberInfiniteTransition(label = "chair drift")
+    val bob by drift.animateFloat(-6f, 6f, infiniteRepeatable(tween(3200, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "bob")
+    val sway by drift.animateFloat(-2.5f, 2.5f, infiniteRepeatable(tween(4700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "sway")
+
+    var pulse by remember { mutableIntStateOf(0) }
+    val squash = remember { Animatable(1f) }
+    LaunchedEffect(pulse) {
+        if (pulse == 0) return@LaunchedEffect
+        squash.snapTo(0.9f)
+        squash.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 300f))
+    }
+
+    Image(
+        painterResource(R.drawable.illo_chair),
+        contentDescription = null,
+        modifier = modifier
+            .size(Dimens.heroIllustration)
+            .graphicsLayer {
+                translationY = bob.dp.toPx()
+                rotationZ = sway
+                scaleX = squash.value
+                scaleY = squash.value
+            }
+            .clickable(remember { MutableInteractionSource() }, indication = null) { pulse++ },
+    )
+}
+
+@Composable
 private fun StatusChip(modifier: Modifier = Modifier) {
     val p = HotseatTheme.palette
     Row(
@@ -159,6 +199,7 @@ private fun StatusChip(modifier: Modifier = Modifier) {
             GlassIcons.Sparkle,
             20.dp,
             Modifier.clickable(remember { MutableInteractionSource() }, indication = null) { pulse++ },
+            tint = p.tabTint,
             motion = GlassMotion.Spin,
             pulse = pulse,
         )
@@ -184,7 +225,7 @@ private fun GlassButton(onClick: () -> Unit) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        GlassIcon(GlassIcons.Next, 24.dp, tint = p.glassGlyph, motion = GlassMotion.Nudge, pulse = pulse)
+        GlassIcon(GlassIcons.Next, 22.dp, tint = p.tabTint, motion = GlassMotion.Nudge, pulse = pulse)
     }
 }
 
