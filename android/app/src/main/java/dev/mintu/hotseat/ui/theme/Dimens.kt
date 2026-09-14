@@ -12,6 +12,7 @@ object Dimens {
     val arrowWidth = 56.dp
     val arrowHeight = 42.dp
 
+    val displayNudge = 7.dp
     val metaGap = 12.dp
     val separatorGap = 7.dp
 
