@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.mintu.hotseat.data.Mock
+import dev.mintu.hotseat.live.ConnectStep
 import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.candidatePace
 import dev.mintu.hotseat.live.clock
@@ -76,7 +77,12 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                     }
                     val pace = candidatePace(shown)
                     val status = when {
-                        phase == Phase.Connecting -> "Connecting"
+                        phase == Phase.Connecting -> when (state.step) {
+                            ConnectStep.Calling -> "Calling your interviewer"
+                            ConnectStep.Joining, ConnectStep.Ready -> "Interviewer is joining"
+                            else -> "Getting your mic ready"
+                        }
+                        phase == Phase.Live && shown.none { it.speaker == Speaker.interviewer } -> "Interviewer is about to speak"
                         phase == Phase.Scoring -> "Scoring your answers"
                         phase == Phase.Report -> "Replay"
                         phase == Phase.Failed -> "Paused"

@@ -26,3 +26,19 @@ the phone has to be unlocked, a locked phone cannot use the mic.
 ## without a phone
 
 `worker/scripts/interview.mjs` streams a wav file as the mic over webrtc through the same worker, see worker/README.md.
+
+## how long the start takes
+
+every live start logs a breakdown under `HotseatLive`:
+
+```
+adb logcat -s HotseatLive | grep timing
+timing 655ms offer created
+timing 723ms candidates gathered
+timing 1400ms worker answered
+timing 2668ms greeting sent
+timing 2940ms session started
+timing 3580ms first interviewer words
+```
+
+two things made the first question slow before. the greeting went out as `session.instructions.append`, which in node tests only got the interviewer to speak first in about one session in three, the rest stayed silent until the candidate talked. `session.commentary.append` spoke every time (7 of 7), about 0.9s after session.started. and the app waited up to 5s for ICE gathering against a STUN server, now it has no STUN (OpenAI's side is public, host candidates reach it) and gathering finishes in milliseconds.

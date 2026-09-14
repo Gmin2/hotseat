@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.data.Speaker as ScriptSpeaker
+import dev.mintu.hotseat.live.ConnectStep
 import dev.mintu.hotseat.live.InterviewSetup
 import dev.mintu.hotseat.live.LiveEvent
 import dev.mintu.hotseat.live.LiveReport
@@ -76,6 +77,8 @@ class Practice(
     var report by mutableStateOf<LiveReport?>(null)
         private set
     var error by mutableStateOf<String?>(null)
+        private set
+    var step by mutableStateOf(ConnectStep.Idle)
         private set
 
     private var session: LiveSession? = null
@@ -168,6 +171,7 @@ class Practice(
                 }
             }
         }
+        jobs += scope.launch { live.step.collect { step = it } }
         jobs += scope.launch { live.interviewerLevel.collect { interviewerLevel = it } }
         jobs += scope.launch { live.candidateLevel.collect { candidateLevel = it } }
         jobs += scope.launch {

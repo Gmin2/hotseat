@@ -63,11 +63,11 @@ export function instructions(s: InterviewSetup): string {
   return lines.join("\n")
 }
 
-// GPT-Live only speaks first when handed the exact words and told to go
+// sent as session.commentary.append once the data channel opens. instructions.append only got the interviewer to
+// speak first in about a third of test sessions, commentary did every time, about 0.9s after session.started
 export function greeting(s: InterviewSetup): string {
   const r = rounds[s.round]
-  const text = `Hi, thanks for joining. I am your interviewer today. ${r.opener}`
-  return `Speak first, right now, before the candidate says anything. Say exactly: "${text}" Then stop and listen.`
+  return `Greet the candidate now: Hi, thanks for joining. I am your interviewer today. ${r.opener}`
 }
 
 export function roundName(round: Round) {

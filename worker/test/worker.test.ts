@@ -37,7 +37,7 @@ test("instructions follow the setup", () => {
   assert.doesNotMatch(text, /Job post/)
   const job = instructions(parseSetup({ round: "job", jobPost: "We build payments on Kotlin" }) as any)
   assert.match(job, /Job post:\nWe build payments on Kotlin/)
-  assert.match(greeting(s), /Say exactly: "Hi, thanks for joining\. I am your interviewer today\. To warm up/)
+  assert.match(greeting(s), /^Greet the candidate now: Hi, thanks for joining\. I am your interviewer today\. To warm up/)
 })
 
 test("candidate stats count words, pace and fillers", () => {
@@ -115,7 +115,7 @@ test("session route sends the built instructions and returns the greeting", asyn
   assert.equal(body.id, "live_1")
   assert.equal(body.sdp, "answer")
   assert.equal(body.maxSeconds, 720)
-  assert.match(body.greeting, /Speak first/)
+  assert.match(body.greeting, /^Greet the candidate now/)
   assert.equal(sent.session.model, "gpt-live-1")
   assert.equal(sent.transport.sdp, "offer")
   assert.match(sent.session.instructions, /Android technical/)

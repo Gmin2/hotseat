@@ -1,6 +1,7 @@
 package dev.mintu.hotseat.ui.practice
 
 import dev.mintu.hotseat.data.Mock
+import dev.mintu.hotseat.live.ConnectStep
 import dev.mintu.hotseat.live.InterviewSetup
 import dev.mintu.hotseat.live.LiveEvent
 import dev.mintu.hotseat.live.LiveReport
@@ -30,6 +31,7 @@ import java.io.IOException
 class PracticeTest {
     private open class FakeSession(var failWith: Exception? = null, val maxSeconds: Int = 60) : LiveSession {
         override val events = MutableSharedFlow<LiveEvent>(extraBufferCapacity = 64)
+        override val step = MutableStateFlow(ConnectStep.Idle)
         override val interviewerLevel = MutableStateFlow(0f)
         override val candidateLevel = MutableStateFlow(0f)
         var setup: InterviewSetup? = null
@@ -83,6 +85,9 @@ class PracticeTest {
         assertEquals(Phase.Live, p.phase)
         assertEquals(Mood.Morning, p.mood)
         val s = h.sessions.single()
+        s.step.value = ConnectStep.Joining
+        runCurrent()
+        assertEquals(ConnectStep.Joining, p.step)
         assertEquals(InterviewSetup("technical", "hard", "sharp", Mock.role, 15, null), s.setup)
         assertEquals(60_000L, p.limitMs)
 

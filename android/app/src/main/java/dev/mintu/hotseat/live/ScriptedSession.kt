@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
  */
 class ScriptedSession(private val context: Context, private val scope: CoroutineScope) : LiveSession {
     override val events = MutableSharedFlow<LiveEvent>(extraBufferCapacity = 256)
+    override val step = MutableStateFlow(ConnectStep.Idle)
     override val interviewerLevel = MutableStateFlow(0f)
     override val candidateLevel = MutableStateFlow(0f)
     private var job: Job? = null
@@ -23,7 +24,11 @@ class ScriptedSession(private val context: Context, private val scope: Coroutine
         val lines = context.assets.open("fixtures/technical-session.events.jsonl").bufferedReader().readLines()
         val parsed = lines.filter { it.isNotBlank() }.map(::parseEvent)
         job = scope.launch {
-            delay(600)
+            step.value = ConnectStep.Calling
+            delay(300)
+            step.value = ConnectStep.Joining
+            delay(300)
+            step.value = ConnectStep.Ready
             var clock = 0L
             for (e in parsed) {
                 when (e) {
