@@ -19,3 +19,11 @@
 - when you end, you get a score, a STAR breakdown and a better way to say each answer
 
 built with kotlin and jetpack compose on android. the voice runs on openai gpt-live over webrtc, through a small cloudflare worker that holds the key.
+
+## how it works
+
+<p align="center">
+  <img src="media/architecture.png" alt="hotseat architecture" width="860">
+</p>
+
+the app asks the worker to start, the worker opens a gpt-live session with the openai key, then the phone and the interviewer talk directly over webrtc. at the end the transcript goes back through the worker to get scored. the diagram source is `media/architecture.excalidraw`, open it on excalidraw.com to edit.
