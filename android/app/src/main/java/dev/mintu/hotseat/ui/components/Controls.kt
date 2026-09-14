@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,8 +42,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
-import dev.mintu.hotseat.ui.brand.AnimatedBrandMark
-import dev.mintu.hotseat.ui.brand.BrandMark
+import dev.mintu.hotseat.ui.brand.IdleMascot
 import dev.mintu.hotseat.ui.icons.InkIcon
 import dev.mintu.hotseat.ui.icons.InkIcons
 import dev.mintu.hotseat.ui.icons.InkMotion
@@ -79,12 +77,9 @@ fun StatusChip(state: ChipState, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // tapping replays the mark, live makes its dot breathe like a recording light
-        key(pulse) {
-            if (pulse == 0) BrandMark(22.dp, p.glassGlyph, live = state == ChipState.Live)
-            else AnimatedBrandMark(22.dp, p.glassGlyph)
-        }
-        Spacer(Modifier.width(10.dp))
+        // tapping makes the bird hop, while live its mic glows like a recording light
+        IdleMascot(34.dp, mic = if (state == ChipState.Live) (glow - 1f) / 0.6f else 0f, pulse = pulse)
+        Spacer(Modifier.width(8.dp))
         Box(contentAlignment = Alignment.Center) {
             if (state == ChipState.Live || state == ChipState.Connecting) {
                 Box(Modifier.size(8.dp).scale(glow).clip(CircleShape).background(dot.copy(alpha = 0.3f)))

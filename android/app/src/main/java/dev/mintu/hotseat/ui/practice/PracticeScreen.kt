@@ -42,16 +42,47 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
     val t = HotseatTheme.type
     val round = Mock.rounds[state.round]
     val report = state.report
-    val line = state.line
     val phase = state.phase
     // in the report the playhead can sit mid interview, then the headline shows that moment instead of the summary
     val reviewingLine = phase == Phase.Report && (state.replaying || state.elapsed < state.totalMs)
 
+    val chat = phase == Phase.Connecting || phase == Phase.Live || phase == Phase.Scoring || reviewingLine ||
+        (phase == Phase.Failed && state.turns.isNotEmpty())
+
     Box(modifier.fillMaxSize()) {
-        HotseatScene(
-            level = state.level,
-            modifier = Modifier.align(Alignment.Center).offset(y = 26.dp).fillMaxWidth(0.8f),
-        )
+        // before and after an interview the hot seat scene, during it the conversation
+        AnimatedContent(
+            chat,
+            Modifier.fillMaxSize(),
+            transitionSpec = { fadeIn(tween(320, delayMillis = 120)).togetherWith(fadeOut(tween(200))) },
+            label = "scene or chat",
+        ) { showChat ->
+            Box(Modifier.fillMaxSize()) {
+                if (showChat) {
+                    val shown = if (phase == Phase.Report) state.turns.filter { it.startMs <= state.elapsed } else state.turns
+                    val last = shown.lastOrNull()
+                    val typing = when {
+                        phase == Phase.Connecting -> Typing.Interviewer
+                        phase != Phase.Live -> Typing.None
+                        last == null -> Typing.Interviewer
+                        state.interviewerLevel > 0.1f && last.speaker != Speaker.interviewer -> Typing.Interviewer
+                        state.candidateLevel > 0.14f && !state.muted && last.speaker != Speaker.candidate -> Typing.Candidate
+                        else -> Typing.None
+                    }
+                    ChatBubbles(
+                        shown,
+                        typing,
+                        state.level,
+                        Modifier.fillMaxSize().statusBarsPadding().padding(top = 150.dp, bottom = 320.dp),
+                    )
+                } else {
+                    HotseatScene(
+                        level = state.level,
+                        modifier = Modifier.align(Alignment.Center).offset(y = 26.dp).fillMaxWidth(0.8f),
+                    )
+                }
+            }
+        }
 
         Column(Modifier.statusBarsPadding().padding(top = 12.dp)) {
             StatusChip(
@@ -69,8 +100,9 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                 phase == Phase.Scoring -> "Scoring"
                 phase == Phase.Failed -> "Something went wrong"
                 phase == Phase.Report && !reviewingLine -> "Your report"
-                line?.speaker == Speaker.candidate -> if (state.muted) "You · muted" else "You"
-                else -> "Interviewer"
+                phase == Phase.Report -> "Replay"
+                state.muted -> "Live · muted"
+                else -> "Live"
             }
             val headline = when {
                 phase == Phase.Idle -> "Ready when you are. ${round.title} round, ${Mock.difficulties[state.difficulty].lowercase()}."
@@ -78,8 +110,8 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                 phase == Phase.Scoring -> "Reading back your answers."
                 phase == Phase.Failed -> state.error.orEmpty()
                 phase == Phase.Report && !reviewingLine -> report?.summary.orEmpty()
-                line != null -> line.text.trim()
-                else -> "Say hi when you hear the interviewer."
+                // the conversation lives in the bubbles, the headline only says where you are
+                else -> "${round.title}, question ${state.question}."
             }
             AnimatedContent(
                 kicker,
@@ -90,10 +122,8 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
             }
             TypedText(
                 headline,
-                t.headline.copy(color = if (line?.speaker == Speaker.candidate && phase == Phase.Live) p.text.copy(alpha = 0.72f) else p.text),
+                t.headline.copy(color = p.text),
                 Modifier.padding(start = Dimens.gutter, end = Dimens.gutter, top = 6.dp),
-                // live transcripts grow a few words at a time, retyping from the start would flicker
-                instant = phase == Phase.Live && !state.demo,
             )
         }
 
