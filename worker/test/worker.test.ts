@@ -33,11 +33,21 @@ test("instructions follow the setup", () => {
   assert.match(text, /Android technical mock interview for a Android engineer/)
   assert.match(text, /skeptical/)
   assert.match(text, /push back/)
-  assert.match(text, /After about 12 minutes/)
+  assert.match(text, /about 12 minutes/)
+  assert.match(text, /1\. Area choice/)
+  assert.match(text, /Jetpack Compose and UI, Kotlin coroutines/)
   assert.doesNotMatch(text, /Job post/)
   const job = instructions(parseSetup({ round: "job", jobPost: "We build payments on Kotlin" }) as any)
   assert.match(job, /Job post:\nWe build payments on Kotlin/)
-  assert.match(greeting(s), /^Greet the candidate now: Hi, thanks for joining\. I am your interviewer today\. To warm up/)
+  assert.match(greeting(s), /^Greet the candidate now: Hi, thanks for joining\. I am your interviewer today\. Which area should we dig into first/)
+  const design = parseSetup({ round: "design" }) as any
+  assert.match(greeting(design), /file storage app like Dropbox, a social feed like X, a video streaming app like YouTube, or a chat app like WhatsApp/)
+  assert.match(instructions(design), /Deep dive for their pick\. File storage: chunked/)
+  for (const round of ["behavioral", "technical", "design", "job"]) {
+    const text = instructions(parseSetup({ round, jobPost: "Kotlin role" }) as any)
+    assert.ok(text.length < 4000, `${round} instructions stay short`)
+    assert.match(text, /report is ready/)
+  }
 })
 
 test("candidate stats count words, pace and fillers", () => {
