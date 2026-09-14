@@ -6,7 +6,9 @@
 
 <p align="center">practice job interviews out loud. a voice interviewer asks, listens and follows up, then you get a report on every answer.</p>
 
-<p align="center"><a href="https://github.com/Gmin2/hotseat/releases/latest/download/hotseat.apk"><b>download the android apk</b></a></p>
+<p align="center">
+  <a href="https://github.com/Gmin2/hotseat/releases"><img src="https://img.shields.io/github/v/release/Gmin2/hotseat?logo=android&logoColor=white&label=download%20apk&color=3DDC84" alt="download apk"></a>
+</p>
 
 <p align="center">
   <picture>
