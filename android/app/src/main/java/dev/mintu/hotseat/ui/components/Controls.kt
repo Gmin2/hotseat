@@ -1,5 +1,7 @@
 package dev.mintu.hotseat.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import dev.mintu.hotseat.ui.theme.loop
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -55,8 +57,7 @@ enum class ChipState { Ready, Connecting, Live, Done }
 fun StatusChip(state: ChipState, modifier: Modifier = Modifier) {
     val p = HotseatTheme.palette
     var pulse by remember { mutableIntStateOf(0) }
-    val beat = rememberInfiniteTransition(label = "chip")
-    val glow by beat.animateFloat(1f, 1.6f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "glow")
+    val glow = 1f + 0.6f * loop(700, "chip glow", reverse = true, easing = FastOutSlowInEasing)
     val dot by animateColorAsState(
         when (state) {
             ChipState.Ready -> Color(0xFF34C759)

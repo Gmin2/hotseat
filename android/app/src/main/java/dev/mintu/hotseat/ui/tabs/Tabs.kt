@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,13 +49,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.R
 import dev.mintu.hotseat.data.Mock
-import dev.mintu.hotseat.data.Session
+import dev.mintu.hotseat.data.Profile
+import dev.mintu.hotseat.data.Saved
+import dev.mintu.hotseat.data.SavedSession
+import dev.mintu.hotseat.data.SessionRowData
+import dev.mintu.hotseat.data.progress
+import dev.mintu.hotseat.data.row
+import dev.mintu.hotseat.data.sampleRows
 import dev.mintu.hotseat.ui.art.IsoScene
 import dev.mintu.hotseat.ui.art.IsoScenes
 import dev.mintu.hotseat.ui.art.TabScene
 import dev.mintu.hotseat.ui.components.Hairline
 import dev.mintu.hotseat.ui.components.RollingText
 import dev.mintu.hotseat.ui.components.Segmented
+import dev.mintu.hotseat.ui.components.Sheet
 import dev.mintu.hotseat.ui.components.StatusChip
 import dev.mintu.hotseat.ui.components.ChipState
 import dev.mintu.hotseat.ui.components.dots
@@ -98,23 +107,33 @@ private fun TabPage(kicker: String, title: String, number: String, caption: Stri
 }
 
 @Composable
-fun SessionsTab(onOpen: (Session) -> Unit) {
+fun SessionsTab(saved: Saved, onOpenSaved: (SavedSession) -> Unit, onOpenSample: (Int) -> Unit) {
+    val real = saved.sessions
+    val minutes = (real.sumOf { it.seconds } / 60).toInt()
     TabPage(
         kicker = "Sessions",
-        title = "Every run, replayable.",
-        number = Mock.sessions.size.toString(),
-        caption = dots("interviews this month", "${Mock.minutesPracticed} min"),
+        title = if (real.isEmpty()) "Your interviews land here." else "Every run, replayable.",
+        number = real.size.toString(),
+        caption = if (real.isEmpty()) "no interviews yet" else dots(if (real.size == 1) "interview" else "interviews", "$minutes min"),
         art = IsoScenes.Sessions,
     ) {
-        Mock.sessions.forEachIndexed { i, s ->
-            if (i > 0) Hairline()
-            SessionRow(s, i) { onOpen(s) }
+        if (real.isEmpty()) {
+            Header("Samples to look around")
+            Mock.sampleRows().forEachIndexed { i, row ->
+                if (i > 0) Hairline()
+                SessionRow(row, i) { onOpenSample(Mock.rounds.indexOfFirst { it.title == row.title }.coerceAtLeast(0)) }
+            }
+        } else {
+            real.forEachIndexed { i, session ->
+                if (i > 0) Hairline()
+                SessionRow(session.row(saved.profile.role), i) { onOpenSaved(session) }
+            }
         }
     }
 }
 
 @Composable
-private fun SessionRow(s: Session, index: Int, onClick: () -> Unit) {
+private fun SessionRow(s: SessionRowData, index: Int, onClick: () -> Unit) {
     val t = HotseatTheme.type
     val press = remember { MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
@@ -142,8 +161,8 @@ private fun SessionRow(s: Session, index: Int, onClick: () -> Unit) {
             BasicText(s.date, style = t.caption.copy(color = Color(0xFF1C1C1C)))
         }
         Column(Modifier.weight(1f)) {
-            BasicText(s.round, style = t.meta.copy(color = Color(0xFF000000)))
-            BasicText(dots(s.role, "${s.minutes} min"), style = t.caption.copy(color = Color(0xFF848484)), maxLines = 1)
+            BasicText(s.title, style = t.meta.copy(color = Color(0xFF000000)))
+            BasicText(s.subtitle, style = t.caption.copy(color = Color(0xFF848484)), maxLines = 1)
         }
         MiniTicks(s.trend, Modifier.padding(horizontal = 10.dp))
         ScorePill(s.score)
@@ -153,7 +172,7 @@ private fun SessionRow(s: Session, index: Int, onClick: () -> Unit) {
 @Composable
 private fun MiniTicks(values: List<Int>, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp, 22.dp)) {
-        val pitch = size.width / values.size
+        val pitch = size.width / maxOf(1, values.size)
         values.forEachIndexed { i, v ->
             val h = size.height * (0.25f + 0.75f * (v - 40) / 60f).coerceIn(0.2f, 1f)
             val x = i * pitch + pitch / 2
@@ -164,20 +183,28 @@ private fun MiniTicks(values: List<Int>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ProgressTab() {
+fun ProgressTab(saved: Saved) {
     val t = HotseatTheme.type
+    val data = progress(saved)
+    val latest = data.scores.lastOrNull() ?: 0
+    val change = latest - (data.scores.firstOrNull() ?: 0)
     TabPage(
-        kicker = "Progress",
-        title = "You are getting sharper.",
-        number = Mock.scores.last().toString(),
-        caption = dots("latest score", "up ${Mock.scores.last() - Mock.scores.first()} since Sep 1"),
+        kicker = if (data.sample) "Progress · sample" else "Progress",
+        title = when {
+            data.sample -> "Here is what progress will look like."
+            change > 0 -> "You are getting sharper."
+            data.scores.size == 1 -> "Your first score is in."
+            else -> "Keep going, it adds up."
+        },
+        number = latest.toString(),
+        caption = dots("latest score", if (data.scores.size > 1) "${if (change >= 0) "up" else "down"} ${kotlin.math.abs(change)}" else "one interview"),
         art = IsoScenes.Progress,
     ) {
-        Header("Last 12 interviews")
-        ScoreTicks(Mock.scores)
+        Header(if (data.scores.size > 1) "Last ${data.scores.size} interviews" else "Scores")
+        ScoreTicks(data.scores)
         Hairline(Modifier.padding(top = 12.dp))
-        Header("Skills")
-        Mock.skills.forEach { SkillRow(it.name, it.score) }
+        Header(if (data.sample) "Skills" else "STAR, across your answers")
+        data.skills.forEach { SkillRow(it.name, it.score) }
         Hairline(Modifier.padding(top = 12.dp))
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             var pulse by remember { mutableIntStateOf(0) }
@@ -186,10 +213,10 @@ fun ProgressTab() {
                 contentAlignment = Alignment.Center,
             ) { InkIcon(InkIcons.Streak, 20.dp, Color(0xFFE08A1E), motion = InkMotion.Wiggle, pulse = pulse) }
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                BasicText("${Mock.streakDays} day streak", style = t.meta.copy(color = Color.Black))
-                BasicText("Practice today to keep it going", style = t.caption.copy(color = Color(0xFF848484)))
+                BasicText(if (data.streakDays == 1) "1 day streak" else "${data.streakDays} day streak", style = t.meta.copy(color = Color.Black))
+                BasicText(if (data.streakDays == 0) "Do an interview today to start one" else "Practice today to keep it going", style = t.caption.copy(color = Color(0xFF848484)))
             }
-            BasicText("${Mock.minutesPracticed} min", style = t.meta.copy(color = Color(0xFF3E3E3E)))
+            BasicText("${data.minutes} min", style = t.meta.copy(color = Color(0xFF3E3E3E)))
         }
     }
 }
@@ -203,7 +230,7 @@ private fun Header(text: String) {
 private fun ScoreTicks(scores: List<Int>) {
     val grow = remember { Animatable(0f) }
     LaunchedEffect(Unit) { grow.animateTo(1f, tween(900)) }
-    var picked by remember { mutableIntStateOf(scores.lastIndex) }
+    var picked by remember(scores.size) { mutableIntStateOf(scores.lastIndex) }
     Column {
         Canvas(
             Modifier
@@ -212,7 +239,7 @@ private fun ScoreTicks(scores: List<Int>) {
         ) {
             val pitch = size.width / scores.size
             scores.forEachIndexed { i, s ->
-                val h = size.height * (s - 40) / 60f * grow.value
+                val h = size.height * ((s - 40) / 60f).coerceIn(0.05f, 1f) * grow.value
                 val x = i * pitch + pitch / 2
                 val color = if (i == picked) Color(0xFFE03143) else Color(0xFF292929)
                 drawLine(color.copy(alpha = if (i == picked) 1f else 0.85f), Offset(x, size.height), Offset(x, size.height - h), 6.dp.toPx(), cap = StrokeCap.Round)
@@ -253,38 +280,72 @@ private fun SkillRow(name: String, score: Int) {
 }
 
 @Composable
-fun YouTab() {
+fun YouTab(saved: Saved, onProfile: ((Profile) -> Profile) -> Unit, onDeleteAll: () -> Unit) {
     val t = HotseatTheme.type
-    var style by remember { mutableIntStateOf(0) }
-    var difficulty by remember { mutableIntStateOf(1) }
-    var length by remember { mutableIntStateOf(1) }
-    var captions by remember { mutableStateOf(true) }
+    val profile = saved.profile
+    val lengths = listOf(10, 15, 20)
     TabPage(
         kicker = "You",
-        title = "Mintu, Android engineer.",
-        number = "${Mock.sessions.size * 3}",
-        caption = dots("questions answered", "Bengaluru"),
+        title = listOf(profile.name.trim(), profile.role.trim()).filter { it.isNotEmpty() }.joinToString(", ").ifEmpty { "Your interviews, your way." } + ".",
+        number = progress(saved).let { if (it.sample) "0" else it.questions.toString() },
+        caption = "questions answered",
         art = IsoScenes.You,
     ) {
+        Header("Profile")
+        TextRow("Name", profile.name, "What should the interviewer call you") { v -> onProfile { it.copy(name = v.take(40)) } }
+        Hairline()
+        TextRow("Target role", profile.role, "Android engineer") { v -> onProfile { it.copy(role = v.take(60)) } }
         Header("Interviewer")
         SettingRow(InkIcons.Interviewer, "Voice", "Marin")
-        Segmented(Mock.styles, style, { style = it }, Modifier.padding(vertical = 8.dp))
-        Header("Sessions")
-        Segmented(Mock.difficulties, difficulty, { difficulty = it }, Modifier.padding(bottom = 10.dp))
-        Segmented(listOf("10 min", "15 min", "25 min"), length, { length = it }, Modifier.padding(bottom = 6.dp))
-        ToggleRow("Live captions", captions) { captions = it }
-        Hairline()
-        Header("Target role")
-        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.illo_job), null, Modifier.size(64.dp))
-            Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                BasicText("Paste a job post", style = t.meta.copy(color = Color.Black))
-                BasicText("Questions get tailored to the role", style = t.caption.copy(color = Color(0xFF848484)))
-            }
-            InkIcon(InkIcons.Next, 16.dp, Color(0xFF9A9A9A))
-        }
+        Segmented(Mock.styles, profile.style, { i -> onProfile { it.copy(style = i) } }, Modifier.padding(vertical = 8.dp))
+        Header("Default session")
+        Segmented(Mock.difficulties, profile.difficulty, { i -> onProfile { it.copy(difficulty = i) } }, Modifier.padding(bottom = 10.dp))
+        Segmented(lengths.map { "$it min" }, lengths.indexOf(profile.minutes).coerceAtLeast(0), { i -> onProfile { it.copy(minutes = lengths[i]) } }, Modifier.padding(bottom = 6.dp))
+        Header("Your data")
+        BasicText(
+            "Interviews and your profile stay on this phone. Voice goes to OpenAI only while an interview runs, Hotseat's server keeps nothing.",
+            Modifier.padding(bottom = 4.dp),
+            style = t.caption.copy(color = Color(0xFF848484)),
+        )
+        DangerRow("Delete all data", if (saved.sessions.isEmpty()) "profile and settings" else "${saved.sessions.size} interviews, profile and settings", onDeleteAll)
         Hairline()
         SettingRow(InkIcons.Badge, "About Hotseat", "0.1.0")
+    }
+}
+
+@Composable
+private fun TextRow(label: String, value: String, hint: String, onChange: (String) -> Unit) {
+    val t = HotseatTheme.type
+    Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+        BasicText(label, style = t.caption.copy(color = Color(0xFF848484)))
+        Box(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            if (value.isEmpty()) BasicText(hint, style = t.meta.copy(color = Color(0xFFB0B0B8)))
+            BasicTextField(value, onChange, Modifier.fillMaxWidth(), textStyle = t.meta.copy(color = Color.Black), singleLine = true)
+        }
+    }
+}
+
+@Composable
+private fun DangerRow(label: String, detail: String, onClick: () -> Unit) {
+    val t = HotseatTheme.type
+    var pulse by remember { mutableIntStateOf(0) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(remember { MutableInteractionSource() }, indication = null) {
+                pulse++
+                onClick()
+            }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFFDECEE)), contentAlignment = Alignment.Center) {
+            InkIcon(InkIcons.Trash, 16.dp, Color(0xFFE03143), motion = InkMotion.Wiggle, pulse = pulse)
+        }
+        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+            BasicText(label, style = t.meta.copy(color = Color(0xFFE03143)))
+            BasicText(detail, style = t.caption.copy(color = Color(0xFF848484)))
+        }
     }
 }
 
@@ -304,27 +365,46 @@ private fun SettingRow(icon: InkIcon, label: String, value: String) {
     }
 }
 
+/** Asks before wiping everything, spells out what goes. */
 @Composable
-private fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+fun BoxScope.DeleteSheet(visible: Boolean, interviews: Int, onCancel: () -> Unit, onDelete: () -> Unit) {
     val t = HotseatTheme.type
-    val knob by animateFloatAsState(if (on) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 500f), label = "toggle")
-    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        BasicText(label, style = t.meta.copy(color = Color.Black))
-        Box(
-            Modifier
-                .size(50.dp, 30.dp)
-                .clip(CircleShape)
-                .background(lerp(Color(0xFFE5E5E5), Color(0xFF34C759), knob))
-                .clickable(remember { MutableInteractionSource() }, indication = null) { onChange(!on) }
-                .padding(3.dp),
-        ) {
-            Box(
-                Modifier
-                    .graphicsLayer { translationX = knob * 20.dp.toPx() }
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-            )
+    Sheet(visible, onDismiss = onCancel, fraction = 1f) {
+        Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFFDECEE)), contentAlignment = Alignment.Center) {
+            InkIcon(InkIcons.Trash, 24.dp, Color(0xFFE03143))
         }
+        BasicText("Delete everything?", Modifier.padding(top = 14.dp), style = t.headline.copy(color = Color.Black, fontSize = t.headline.fontSize * 0.8f))
+        BasicText(
+            "This removes " + (if (interviews > 0) "$interviews saved ${if (interviews == 1) "interview" else "interviews"} with their reports, " else "") +
+                "your name, target role and settings from this phone. It cannot be undone.",
+            Modifier.padding(top = 8.dp, bottom = 22.dp),
+            style = t.meta.copy(color = Color(0xFF3E3E3E)),
+        )
+        ActionButton("Delete all data", Color(0xFFE03143), Color.White, onDelete)
+        Spacer(Modifier.height(10.dp))
+        ActionButton("Keep my data", Color(0xFFF1F1F4), Color.Black, onCancel)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun ActionButton(text: String, fill: Color, ink: Color, onClick: () -> Unit) {
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.97f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "action press")
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(fill)
+            .clickable(press, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(text, style = HotseatTheme.type.pill.copy(color = ink))
     }
 }

@@ -1,5 +1,6 @@
 package dev.mintu.hotseat.ui.components
 
+import dev.mintu.hotseat.ui.theme.loop
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -67,10 +68,9 @@ fun SkyBackdrop(mood: Mood, level: Float, modifier: Modifier = Modifier, orb: Of
     val night by animateFloatAsState(if (mood == Mood.Night) 1f else 0f, tween(mood.ms), label = "night")
     val voice by animateFloatAsState(level, spring(dampingRatio = 0.6f, stiffness = 180f), label = "voice")
 
-    val clock = rememberInfiniteTransition(label = "sky")
-    val drift by clock.animateFloat(0f, 1f, infiniteRepeatable(tween(60_000, easing = LinearEasing)), label = "drift")
-    val breath by clock.animateFloat(0f, 1f, infiniteRepeatable(tween(4200, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "breath")
-    val shimmer by clock.animateFloat(0f, 1f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "shimmer")
+    val drift = loop(60_000, "drift")
+    val breath = loop(4200, "breath", reverse = true, easing = FastOutSlowInEasing)
+    val shimmer = loop(900, "shimmer")
 
     Canvas(modifier.fillMaxSize()) {
         drawRect(Brush.verticalGradient(0f to top, 0.29f to upper, 0.53f to mid, 0.62f to low, 0.8f to floor))
