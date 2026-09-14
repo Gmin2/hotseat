@@ -67,9 +67,11 @@ jobs:
         run: |
           apk="hotseat-$VERSION.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "$apk"
+          # same file under a fixed name, so the readme can link straight to the newest apk
+          cp "$apk" hotseat.apk
           notes="Download $apk on an Android phone, open it and allow installing apps from your browser when asked."
           if gh release view "v$VERSION" >/dev/null 2>&1; then
-            gh release upload "v$VERSION" "$apk" --clobber
+            gh release upload "v$VERSION" "$apk" hotseat.apk --clobber
           else
-            gh release create "v$VERSION" "$apk" --title "Hotseat $VERSION" --notes "$notes" --target "$GITHUB_SHA"
+            gh release create "v$VERSION" "$apk" hotseat.apk --title "Hotseat $VERSION" --notes "$notes" --target "$GITHUB_SHA"
           fi
