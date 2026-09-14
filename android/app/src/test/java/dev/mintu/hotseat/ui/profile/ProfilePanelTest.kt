@@ -1,4 +1,4 @@
-package dev.mintu.hotseat.ui.tabs
+package dev.mintu.hotseat.ui.profile
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -35,7 +37,7 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w408dp-h907dp-xxhdpi")
-class YouTabTest {
+class ProfilePanelTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -43,16 +45,18 @@ class YouTabTest {
     val folder = TemporaryFolder()
 
     @Test
-    fun editsSaveAndDeleteAsksFirst() {
+    fun opensEditsSavesAndDeleteAsksFirst() {
         val file = File(folder.root, "hotseat.json")
         val store = Store(file)
         var asked by mutableStateOf(false)
+        var open by mutableStateOf(false)
         var deleted = false
         rule.setContent {
             val saved by store.saved.collectAsState()
             CompositionLocalProvider(LocalReduceMotion provides true) { HotseatTheme {
                 Box(Modifier.fillMaxSize()) {
-                    YouTab(saved, onProfile = store::updateProfile, onDeleteAll = { asked = true })
+                    ProfileButton(saved.profile.name, onClick = { open = true })
+                    ProfilePanel(open, saved, onClose = { open = false }, onProfile = store::updateProfile, onDeleteAll = { asked = true })
                     DeleteSheet(asked, saved.sessions.size, onCancel = { asked = false }, onDelete = {
                         store.deleteAll()
                         deleted = true
@@ -62,6 +66,10 @@ class YouTabTest {
             } }
         }
         rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Profile and settings").performClick()
+        rule.waitForIdle()
+        assertTrue(open)
 
         val fields = rule.onAllNodes(hasSetTextAction())
         fields[0].performTextInput("Riya")
@@ -74,6 +82,8 @@ class YouTabTest {
         assertEquals("iOS engineer", store.profile.role)
         assertEquals(2, store.profile.difficulty)
         assertEquals("Riya", Store(file).profile.name)
+        // the button shows the first letter once there is a name
+        rule.onNodeWithText("R").assertExists()
 
         rule.onAllNodesWithText("Delete all data").onFirst().performScrollTo().performClick()
         rule.waitForIdle()
@@ -91,5 +101,9 @@ class YouTabTest {
         assertTrue(deleted)
         assertFalse(file.exists())
         assertEquals("", store.profile.name)
+
+        rule.onNodeWithContentDescription("Close profile").performClick()
+        rule.waitForIdle()
+        assertFalse(open)
     }
 }

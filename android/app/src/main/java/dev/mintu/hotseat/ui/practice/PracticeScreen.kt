@@ -73,7 +73,7 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                         shown,
                         typing,
                         state.level,
-                        Modifier.fillMaxSize().statusBarsPadding().padding(top = 150.dp, bottom = 320.dp),
+                        Modifier.fillMaxSize().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 146.dp, bottom = 316.dp),
                     )
                 } else {
                     HotseatScene(
