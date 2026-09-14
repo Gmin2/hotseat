@@ -23,7 +23,12 @@ events.onMessage.subscribe((raw) => {
   const text = raw.toString()
   if (out) appendFileSync(out, text + "\n")
   const event = JSON.parse(text)
-  console.log("event:", event.type)
+  if (event.type.endsWith("transcript.delta")) process.stdout.write(event.type.startsWith("session.output") ? event.delta : `[you] ${event.delta}`)
+  else console.log("\nevent:", event.type)
+  // ask the interviewer to open the conversation, like the app will
+  if (event.type === "session.started" && process.env.GREET) {
+    events.send(JSON.stringify({ type: "session.instructions.append", delegation_id: null, content: process.env.GREET }))
+  }
 })
 
 await pc.setLocalDescription(await pc.createOffer())

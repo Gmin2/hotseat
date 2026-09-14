@@ -1,0 +1,35 @@
+{
+  "turns": [
+    {
+      "speaker": "interviewer",
+      "text": " Hi, thanks for joining. I am your interviewer today. To warm up, tell me about the Android work you've done most recently.",
+      "startMs": 800,
+      "endMs": 6200
+    },
+    {
+      "speaker": "candidate",
+      "text": " Hi I am Mintu. I am a mobile engineer. Um at E-Cash Labs, I built the Flutter wallet app. Mostly the offline payment sync. And before that, I did some Swift side projects",
+      "startMs": 9800,
+      "endMs": 25400
+    },
+    {
+      "speaker": "interviewer",
+      "text": " You said offline payment sync. Walk me through the toughest consistency issue you hit there and how you fixed it.",
+      "startMs": 26400,
+      "endMs": 32000
+    },
+    {
+      "speaker": "candidate",
+      "text": " Sure. The hardest part was, like, making sure a payment was never sent twice when the network came back. I used an outbox table with an idempotency key. So the server just ignored duplicates We had zero double payments after launch",
+      "startMs": 40000,
+      "endMs": 56200
+    },
+    {
+      "speaker": "interviewer",
+      "text": " Zero. How did you confirm that in production and what was your sample size?",
+      "startMs": 57200,
+      "endMs": 61200
+    }
+  ],
+  "seconds": 67
+}

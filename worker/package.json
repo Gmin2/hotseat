@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "types": "wrangler types",
-    "call": "node scripts/call.mjs"
+    "call": "node scripts/call.mjs",
+    "test": "node --test test/"
   },
   "devDependencies": {
     "werift": "^0.24.4",
