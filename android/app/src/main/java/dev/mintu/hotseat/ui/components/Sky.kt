@@ -67,6 +67,9 @@ fun SkyBackdrop(mood: Mood, level: Float, modifier: Modifier = Modifier, orb: Of
     val floor by animateColorAsState(mood.sky.floor, tween, label = "floor")
     val night by animateFloatAsState(if (mood == Mood.Night) 1f else 0f, tween(mood.ms), label = "night")
     val voice by animateFloatAsState(level, spring(dampingRatio = 0.6f, stiffness = 180f), label = "voice")
+    // the chat skies drop the clouds and the orb for two soft glows, blue for the interviewer and violet for you
+    val calm by animateFloatAsState(if (mood == Mood.Morning || mood == Mood.Mist) 1f else 0f, tween(600), label = "calm")
+    val you by animateFloatAsState(if (mood == Mood.Mist) 1f else 0f, tween(700), label = "you glow")
 
     val drift = loop(60_000, "drift")
     val breath = loop(4200, "breath", reverse = true, easing = FastOutSlowInEasing)
@@ -82,7 +85,8 @@ fun SkyBackdrop(mood: Mood, level: Float, modifier: Modifier = Modifier, orb: Of
             }
         }
 
-        val cloud = lerp(Color.White.copy(alpha = 0.34f), Color(0xFF30364A).copy(alpha = 0.45f), night)
+        val base = lerp(Color.White.copy(alpha = 0.34f), Color(0xFF30364A).copy(alpha = 0.45f), night)
+        val cloud = base.copy(alpha = base.alpha * (1f - calm))
         puffs.forEach { p ->
             val travel = ((p[0] + drift * p[3]) % 1.3f) - 0.15f
             val center = Offset(travel * size.width, p[1] * size.height)
@@ -91,11 +95,20 @@ fun SkyBackdrop(mood: Mood, level: Float, modifier: Modifier = Modifier, orb: Of
 
         val wobble = if (voice > 0.01f) sin(shimmer * 2 * PI).toFloat() * 0.03f * voice else 0f
         val radius = size.width * (0.2f + 0.02f * breath + 0.12f * voice + wobble)
+        if (calm > 0f) {
+            val blue = Offset(size.width * 0.92f, size.height * 0.08f)
+            val blueR = size.width * (0.75f + 0.12f * voice + 0.04f * breath)
+            drawCircle(Brush.radialGradient(0f to Color(0xFF8FB3F5).copy(alpha = 0.42f * calm * (1f - 0.5f * you)), 1f to Color.Transparent, center = blue, radius = blueR), blueR, blue)
+            val violet = Offset(size.width * 0.05f, size.height * 0.62f)
+            val violetR = size.width * (0.7f + 0.05f * breath)
+            drawCircle(Brush.radialGradient(0f to Color(0xFFB9A8F3).copy(alpha = 0.34f * calm * (0.35f + 0.65f * you)), 1f to Color.Transparent, center = violet, radius = violetR), violetR, violet)
+        }
+
         val c = Offset(orb.x * size.width, orb.y * size.height)
-        // on the light chat skies a white orb vanishes, so it takes a faint blue instead
-        val glow = if (mood == Mood.Morning || mood == Mood.Mist) Color(0xFFBFD3F7) else lerp(Color.White, Color(0xFFF3EAC8), night)
-        drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.55f), 0.45f to glow.copy(alpha = 0.18f), 1f to Color.Transparent, center = c, radius = radius * 2.2f), radius * 2.2f, c)
-        drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.95f), 0.6f to glow.copy(alpha = 0.7f), 1f to glow.copy(alpha = 0f), center = c, radius = radius * 0.55f), radius * 0.55f, c)
+        val glow = lerp(Color.White, Color(0xFFF3EAC8), night)
+        val fade = 1f - calm
+        drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.55f * fade), 0.45f to glow.copy(alpha = 0.18f * fade), 1f to Color.Transparent, center = c, radius = radius * 2.2f), radius * 2.2f, c)
+        drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.95f * fade), 0.6f to glow.copy(alpha = 0.7f * fade), 1f to glow.copy(alpha = 0f * fade), center = c, radius = radius * 0.55f), radius * 0.55f, c)
     }
 }
 

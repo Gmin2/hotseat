@@ -34,7 +34,7 @@ import kotlin.math.abs
 @Composable
 fun Scrubber(
     progress: Float,
-    label: String,
+    label: String?,
     play: PlayState,
     onPlay: () -> Unit,
     modifier: Modifier = Modifier,
@@ -82,6 +82,7 @@ fun Scrubber(
             }
         }
 
+        if (label == null) return@Box
         val pillWidth = remember { mutableIntStateOf(0) }
         val headX = Dimens.playSize + Dimens.playToTicks + Dimens.tickPitch * position.toInt()
         Pill(
