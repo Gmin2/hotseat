@@ -77,9 +77,11 @@ import dev.mintu.hotseat.ui.theme.HotseatTheme
 import dev.mintu.hotseat.ui.theme.LocalReduceMotion
 import android.graphics.Color as AndroidColor
 
+private const val YOU_TAB = 3
+
 @Composable
 fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboarding: Boolean = true) {
-    var tab by remember { mutableIntStateOf(startTab) }
+    var tab by remember { mutableIntStateOf(if (startTab == YOU_TAB) 0 else startTab) }
     var showIntro by remember { mutableStateOf(intro) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -106,7 +108,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
     }
     val saved by store.saved.collectAsState()
     var confirmDelete by remember { mutableStateOf(false) }
-    var profileOpen by remember { mutableStateOf(false) }
+    var profileOpen by remember { mutableStateOf(startTab == YOU_TAB) }
 
     // the You tab settings are the defaults for the next interview
     LaunchedEffect(saved.profile) {
@@ -198,7 +200,8 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                 )
 
                 Column(Modifier.align(Alignment.BottomCenter)) {
-                    TabBar(tab, { tab = it })
+                    // You opens the profile panel over whatever tab you are on, and stays lit while it is open
+                    TabBar(if (profileOpen) YOU_TAB else tab, { if (it == YOU_TAB) profileOpen = true else tab = it })
                     Spacer(Modifier.height(Dimens.tabBarBottom))
                 }
 
