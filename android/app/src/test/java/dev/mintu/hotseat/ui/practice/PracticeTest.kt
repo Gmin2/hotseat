@@ -372,4 +372,19 @@ class PracticeTest {
         runCurrent()
         assertEquals(100 to false, player.played.last())
     }
+
+    @Test
+    fun newInterviewLeavesTheReportAndOpensThePicker() = runTest {
+        val h = harness()
+        val p = h.practice
+        p.showDemo(2)
+        p.reviewing = true
+        assertEquals(Phase.Report, p.phase)
+        p.newInterview()
+        assertEquals(Phase.Idle, p.phase)
+        assertTrue(p.picking)
+        assertFalse(p.reviewing)
+        assertNull(p.report)
+        assertTrue(p.turns.isEmpty())
+    }
 }

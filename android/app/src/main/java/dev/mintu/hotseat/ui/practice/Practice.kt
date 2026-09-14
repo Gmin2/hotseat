@@ -375,6 +375,12 @@ class Practice(
         phase = Phase.Idle
     }
 
+    /** Leaves a report or a failed run and opens the round picker for the next interview. */
+    fun newInterview() {
+        backToIdle()
+        picking = true
+    }
+
     fun dispose() {
         cancelJobs()
         stopVoice()

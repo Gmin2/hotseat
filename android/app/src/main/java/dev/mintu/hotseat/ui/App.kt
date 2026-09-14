@@ -1,6 +1,7 @@
 package dev.mintu.hotseat.ui
 
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.SystemBarStyle
 import android.Manifest
 import android.content.pm.PackageManager
@@ -162,6 +163,16 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
         onDispose {
             lifecycle.removeObserver(observer)
             practice.dispose()
+        }
+    }
+
+    // back walks out one step at a time: another tab to Practice, a report or a failed run to a fresh start,
+    // a starting call gets cancelled. sheets and the profile panel close themselves first
+    BackHandler(enabled = tab != 0 || practice.phase in setOf(Phase.Report, Phase.Failed, Phase.Connecting)) {
+        when {
+            tab != 0 -> tab = 0
+            practice.phase == Phase.Connecting -> practice.end()
+            else -> practice.backToIdle()
         }
     }
 

@@ -57,7 +57,11 @@ private val type = Type.Default
 
 @Composable
 fun BoxScope.RoundSheet(state: Practice, onStart: () -> Unit) {
-    Sheet(state.picking, onDismiss = { state.picking = false }) {
+    Sheet(
+        state.picking,
+        onDismiss = { state.picking = false },
+        footer = { PrimaryButton(if (state.canStart) "Start interview" else "Paste a job post to start", enabled = state.canStart) { onStart() } },
+    ) {
         BasicText("Pick a round", style = type.headline.copy(color = ink.text, fontSize = type.headline.fontSize * 0.82f))
         BasicText("The interviewer adapts to what you say, so no two runs match.", Modifier.padding(top = 6.dp), style = type.meta.copy(color = ink.caption))
 
@@ -80,9 +84,6 @@ fun BoxScope.RoundSheet(state: Practice, onStart: () -> Unit) {
         Segmented(Mock.difficulties, state.difficulty, { state.difficulty = it })
         Label("Interviewer")
         Segmented(Mock.styles, state.style, { state.style = it })
-
-        Spacer(Modifier.height(24.dp))
-        PrimaryButton(if (state.canStart) "Start interview" else "Paste a job post to start", enabled = state.canStart) { onStart() }
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -149,7 +150,7 @@ fun BoxScope.ReportSheet(state: Practice) {
             AnswerRow(i + 1, answer)
         }
         Spacer(Modifier.height(16.dp))
-        PrimaryButton("Practice again") { state.backToIdle() }
+        PrimaryButton("New interview") { state.newInterview() }
     }
 }
 

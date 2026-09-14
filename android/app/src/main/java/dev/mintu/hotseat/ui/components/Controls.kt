@@ -184,6 +184,31 @@ fun EndButton(label: String, enabled: Boolean, onClick: () -> Unit, modifier: Mo
     }
 }
 
+/** A dark pill with a label, for a secondary step next to the round button. */
+@Composable
+fun LabelButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val p = HotseatTheme.palette
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "label press")
+    Box(
+        modifier
+            .height(Dimens.arrowHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(p.pill)
+            .clickable(press, indication = null, onClick = onClick)
+            .semantics { contentDescription = label }
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(label, style = HotseatTheme.type.pill.copy(color = p.pillText))
+    }
+}
+
 @Composable
 fun Pill(text: String, modifier: Modifier = Modifier, fill: Color = HotseatTheme.palette.pill, ink: Color = HotseatTheme.palette.pillText) {
     Box(
