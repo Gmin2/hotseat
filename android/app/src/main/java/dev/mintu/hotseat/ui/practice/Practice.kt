@@ -116,13 +116,15 @@ class Practice(
     /** During the conversation the sky stays light: morning while the interviewer talks, a soft mist while you answer. */
     val mood: Mood
         get() {
-            val chatting = phase == Phase.Connecting || phase == Phase.Live || phase == Phase.Scoring || replaying
+            // same rule as the screen: the chat shows while live and while the report playhead sits mid interview
+            val chatting = phase == Phase.Connecting || phase == Phase.Live || phase == Phase.Scoring || replaying ||
+                (phase == Phase.Report && elapsed < totalMs)
             if (!chatting) return Mood.Day
             val last = line ?: return Mood.Morning
             val candidateTalking = candidateLevel > 0.12f && !muted
             return when {
                 phase == Phase.Live && last.speaker == Speaker.candidate && (candidateTalking || elapsed - last.endMs < 2_500) -> Mood.Mist
-                replaying && last.speaker == Speaker.candidate -> Mood.Mist
+                phase == Phase.Report && last.speaker == Speaker.candidate -> Mood.Mist
                 else -> Mood.Morning
             }
         }
