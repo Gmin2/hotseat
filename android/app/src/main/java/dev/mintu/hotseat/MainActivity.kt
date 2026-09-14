@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import dev.mintu.hotseat.live.LiveProbe
 import dev.mintu.hotseat.ui.App
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +17,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // adb shell am start -n dev.mintu.hotseat/.MainActivity --ei tab 2 opens a tab directly
         val tab = intent.getIntExtra("tab", 0)
-        val intro = !intent.hasExtra("tab")
+        val intro = !intent.hasExtra("tab") && !intent.hasExtra("probe")
+        if (BuildConfig.DEBUG && intent.hasExtra("probe")) {
+            LiveProbe.run(this, lifecycleScope, intent.getIntExtra("probe", 20), intent.getStringExtra("round") ?: "behavioral")
+        }
         setContent { App(startTab = tab, intro = intro) }
     }
 }
