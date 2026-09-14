@@ -31,11 +31,13 @@ import dev.mintu.hotseat.ui.art.HotseatScene
 import dev.mintu.hotseat.ui.components.ChipState
 import dev.mintu.hotseat.ui.components.PlayState
 import dev.mintu.hotseat.ui.components.RollingText
+import dev.mintu.hotseat.ui.components.EndButton
 import dev.mintu.hotseat.ui.components.RoundButton
 import dev.mintu.hotseat.ui.components.Scrubber
 import dev.mintu.hotseat.ui.components.StatusChip
 import dev.mintu.hotseat.ui.components.TypedText
 import dev.mintu.hotseat.ui.components.dots
+import dev.mintu.hotseat.ui.components.fillers
 import dev.mintu.hotseat.ui.theme.Dimens
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 
@@ -84,13 +86,13 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                     val stats = buildList {
                         add("Q${state.question}")
                         if (pace.wpm > 0) add("${pace.wpm} wpm")
-                        add("${pace.fillers} fillers")
+                        add(fillers(pace.fillers))
                     }
                     ChatBubbles(
                         shown,
                         typing,
                         state.level,
-                        Modifier.fillMaxSize().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 132.dp, bottom = 262.dp),
+                        Modifier.fillMaxSize().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 142.dp, bottom = 262.dp),
                         header = { ChatHeader(status, live = phase == Phase.Live && !state.muted, stats = stats) },
                     )
                 } else {
@@ -143,7 +145,7 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
             TypedText(
                 headline,
                 // during the conversation the headline steps back so the card has the room
-                if (chat) t.headline.copy(color = p.text, fontSize = 26.sp, lineHeight = 34.sp) else t.headline.copy(color = p.text),
+                if (chat) t.headline.copy(color = p.text, fontSize = 21.sp, lineHeight = 28.sp) else t.headline.copy(color = p.text),
                 Modifier.padding(start = Dimens.gutter, end = Dimens.gutter, top = 6.dp),
             )
         }
@@ -166,17 +168,20 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                     Modifier.offset(y = -Dimens.displayNudge * size),
                 )
                 Spacer(Modifier.weight(1f))
-                RoundButton(
-                    onClick = {
-                        when (phase) {
-                            Phase.Idle -> state.picking = true
-                            Phase.Connecting, Phase.Live -> state.end()
-                            Phase.Scoring -> Unit
-                            Phase.Report -> state.reviewing = true
-                            Phase.Failed -> state.retry()
-                        }
-                    },
-                )
+                when (phase) {
+                    Phase.Connecting -> EndButton("Cancel", enabled = true, onClick = state::end)
+                    Phase.Live -> EndButton("End", enabled = true, onClick = state::end)
+                    Phase.Scoring -> EndButton("Scoring", enabled = false, onClick = {})
+                    else -> RoundButton(
+                        onClick = {
+                            when (phase) {
+                                Phase.Idle -> state.picking = true
+                                Phase.Report -> state.reviewing = true
+                                else -> state.retry()
+                            }
+                        },
+                    )
+                }
             }
             BasicText(
                 if (chat) dots(state.role.ifBlank { Mock.role }, "${state.minutes} min") else dots(round.title, state.role.ifBlank { Mock.role }),
@@ -186,8 +191,8 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
             val pace = candidatePace(state.turns)
             val caption = when (phase) {
                 Phase.Idle, Phase.Failed, Phase.Connecting -> dots(if (state.demo) "demo, no mic" else "voice interview", Mock.difficulties[state.difficulty], Mock.styles[state.style])
-                Phase.Live, Phase.Scoring -> dots("Q${state.question}", if (pace.wpm > 0) "${pace.wpm} wpm" else "listening", "${pace.fillers} fillers")
-                Phase.Report -> report?.let { dots(it.duration, "${it.wpm} wpm", "${it.fillers} fillers") }.orEmpty()
+                Phase.Live, Phase.Scoring -> dots("Q${state.question}", if (pace.wpm > 0) "${pace.wpm} wpm" else "listening", fillers(pace.fillers))
+                Phase.Report -> report?.let { dots(it.duration, "${it.wpm} wpm", fillers(it.fillers)) }.orEmpty()
             }
             // in the chat these numbers live in the card header instead
             if (!chat) BasicText(caption, Modifier.padding(start = Dimens.gutter, top = Dimens.metaGap), style = t.caption.copy(color = p.caption))
@@ -199,9 +204,10 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
             }
             val play = when (phase) {
                 Phase.Idle, Phase.Failed -> PlayState.Play
-                Phase.Live -> if (state.muted) PlayState.Play else PlayState.Pause
+                // live the round button is the mic, tap to mute
+                Phase.Live -> if (state.muted) PlayState.MicOff else PlayState.Mic
                 Phase.Report -> if (state.replaying) PlayState.Pause else if (reviewingLine) PlayState.Play else PlayState.Replay
-                else -> PlayState.Pause
+                else -> PlayState.Mic
             }
             Scrubber(
                 progress = state.progress,

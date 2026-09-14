@@ -47,6 +47,7 @@ import dev.mintu.hotseat.ui.components.Hairline
 import dev.mintu.hotseat.ui.components.Segmented
 import dev.mintu.hotseat.ui.components.Sheet
 import dev.mintu.hotseat.ui.components.dots
+import dev.mintu.hotseat.ui.components.fillers
 import dev.mintu.hotseat.ui.icons.InkIcon
 import dev.mintu.hotseat.ui.theme.Palette
 import dev.mintu.hotseat.ui.theme.Type
@@ -141,7 +142,7 @@ fun BoxScope.ReportSheet(state: Practice) {
             BasicText("/100", Modifier.padding(start = 6.dp, bottom = 14.dp), style = type.meta.copy(color = ink.caption))
         }
         BasicText(report.summary, style = type.meta.copy(color = ink.meta))
-        BasicText(dots(report.duration, "${report.wpm} wpm", "${report.fillers} fillers"), Modifier.padding(top = 6.dp, bottom = 18.dp), style = type.caption.copy(color = ink.caption))
+        BasicText(dots(report.duration, "${report.wpm} wpm", fillers(report.fillers)), Modifier.padding(top = 6.dp, bottom = 18.dp), style = type.caption.copy(color = ink.caption))
 
         report.answers.forEachIndexed { i, answer ->
             Hairline()

@@ -23,6 +23,6 @@ class MainActivity : ComponentActivity() {
         }
         // adb launches that jump to a tab skip onboarding unless asked for with --ez onboarding true
         val onboarding = intent.getBooleanExtra("onboarding", !intent.hasExtra("tab") && !intent.hasExtra("probe"))
-        setContent { App(startTab = tab, intro = intro, demo = intent.getBooleanExtra("demo", false), onboarding = onboarding) }
+        setContent { App(startTab = tab, intro = intro, demo = intent.getBooleanExtra("demo", false), onboarding = onboarding, scripted = BuildConfig.DEBUG && intent.getBooleanExtra("scripted", false)) }
     }
 }

@@ -23,6 +23,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import dev.mintu.hotseat.ui.theme.Motion
 
+fun fillers(count: Int) = if (count == 1) "1 filler" else "$count fillers"
+
 fun dots(vararg parts: String) = parts.joinToString(" · ")
 
 /**

@@ -107,7 +107,7 @@ private fun TabPage(kicker: String, title: String, number: String, caption: Stri
 }
 
 @Composable
-fun SessionsTab(saved: Saved, onOpenSaved: (SavedSession) -> Unit, onOpenSample: (Int) -> Unit) {
+fun SessionsTab(saved: Saved, onOpenSaved: (SavedSession) -> Unit, onOpenSample: (Int) -> Unit, highlight: String? = null) {
     val real = saved.sessions
     val minutes = (real.sumOf { it.seconds } / 60).toInt()
     TabPage(
@@ -126,14 +126,14 @@ fun SessionsTab(saved: Saved, onOpenSaved: (SavedSession) -> Unit, onOpenSample:
         } else {
             real.forEachIndexed { i, session ->
                 if (i > 0) Hairline()
-                SessionRow(session.row(saved.profile.role), i) { onOpenSaved(session) }
+                SessionRow(session.row(saved.profile.role), i, fresh = session.id == highlight) { onOpenSaved(session) }
             }
         }
     }
 }
 
 @Composable
-private fun SessionRow(s: SessionRowData, index: Int, onClick: () -> Unit) {
+private fun SessionRow(s: SessionRowData, index: Int, fresh: Boolean = false, onClick: () -> Unit) {
     val t = HotseatTheme.type
     val press = remember { MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
@@ -142,6 +142,13 @@ private fun SessionRow(s: SessionRowData, index: Int, onClick: () -> Unit) {
     LaunchedEffect(Unit) {
         delay(index * 45L)
         enter.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 300f))
+    }
+    // the interview you just finished glows blue for a moment
+    val glow = remember { Animatable(if (fresh) 1f else 0f) }
+    LaunchedEffect(fresh) {
+        if (!fresh) return@LaunchedEffect
+        delay(3000)
+        glow.animateTo(0f, tween(1500))
     }
     Row(
         Modifier
@@ -152,8 +159,10 @@ private fun SessionRow(s: SessionRowData, index: Int, onClick: () -> Unit) {
                 scaleX = scale
                 scaleY = scale
             }
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFE9F0FD).copy(alpha = glow.value))
             .clickable(press, indication = null, onClick = onClick)
-            .padding(vertical = 14.dp),
+            .padding(vertical = 14.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.width(52.dp)) {

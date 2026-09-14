@@ -50,6 +50,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mintu.hotseat.live.LiveClient
+import dev.mintu.hotseat.live.ScriptedSession
 import dev.mintu.hotseat.live.LiveProbe
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Mock
@@ -61,6 +62,7 @@ import dev.mintu.hotseat.ui.profile.DeleteSheet
 import dev.mintu.hotseat.ui.profile.ProfileButton
 import dev.mintu.hotseat.ui.profile.ProfilePanel
 import java.util.UUID
+import kotlinx.coroutines.delay
 import dev.mintu.hotseat.ui.brand.Intro
 import dev.mintu.hotseat.ui.onboarding.Onboarding
 import dev.mintu.hotseat.ui.components.Mood
@@ -80,8 +82,9 @@ import android.graphics.Color as AndroidColor
 private const val YOU_TAB = 3
 
 @Composable
-fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboarding: Boolean = true) {
+fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboarding: Boolean = true, scripted: Boolean = false) {
     var tab by remember { mutableIntStateOf(if (startTab == YOU_TAB) 0 else startTab) }
+    var fresh by remember { mutableStateOf<String?>(null) }
     var showIntro by remember { mutableStateOf(intro) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -90,12 +93,13 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
     val practice = remember {
         Practice(
             scope = scope,
-            newSession = { LiveClient(context, api, scope) },
+            newSession = { if (scripted) ScriptedSession(context, scope) else LiveClient(context, api, scope) },
             score = { round, seconds, turns -> api.report(round, seconds, turns) },
             onFinished = { done ->
+                val id = UUID.randomUUID().toString()
                 store.addSession(
                     SavedSession(
-                        id = UUID.randomUUID().toString(),
+                        id = id,
                         round = done.roundIndex,
                         startedAt = System.currentTimeMillis() - (done.seconds * 1000).toLong(),
                         seconds = done.seconds,
@@ -103,8 +107,19 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                         report = done.report,
                     ),
                 )
+                // a finished interview goes straight to Sessions, where it sits on top, lit up
+                fresh = id
+                tab = 1
             },
         ).also { it.demo = demo }
+    }
+    // once the new session is showing in Sessions, Practice goes back to ready for the next one
+    LaunchedEffect(fresh) {
+        if (fresh == null) return@LaunchedEffect
+        if (practice.phase == Phase.Report) practice.backToIdle()
+        // only light it up the once
+        delay(6_000)
+        fresh = null
     }
     val saved by store.saved.collectAsState()
     var confirmDelete by remember { mutableStateOf(false) }
@@ -178,6 +193,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                                 practice.showDemo(round)
                                 tab = 0
                             },
+                            highlight = fresh,
                         )
                         else -> ProgressTab(saved)
                     }
