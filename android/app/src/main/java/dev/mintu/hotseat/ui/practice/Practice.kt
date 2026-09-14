@@ -112,14 +112,17 @@ class Practice(
 
     val level: Float get() = if (phase == Phase.Live || replaying) interviewerLevel else 0f
 
+    /** During the conversation the sky stays light: morning while the interviewer talks, a soft mist while you answer. */
     val mood: Mood
         get() {
-            if (phase != Phase.Live && !replaying) return Mood.Day
-            val last = line ?: return Mood.Day
+            val chatting = phase == Phase.Connecting || phase == Phase.Live || phase == Phase.Scoring || replaying
+            if (!chatting) return Mood.Day
+            val last = line ?: return Mood.Morning
             val candidateTalking = candidateLevel > 0.12f && !muted
             return when {
-                last.speaker == Speaker.candidate && (candidateTalking || elapsed - last.endMs < 2_500) -> Mood.Night
-                else -> Mood.Day
+                phase == Phase.Live && last.speaker == Speaker.candidate && (candidateTalking || elapsed - last.endMs < 2_500) -> Mood.Mist
+                replaying && last.speaker == Speaker.candidate -> Mood.Mist
+                else -> Mood.Morning
             }
         }
 

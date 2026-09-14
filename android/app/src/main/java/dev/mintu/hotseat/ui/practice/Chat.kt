@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -90,7 +92,7 @@ fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modi
 
 @Composable
 private fun bubbleText(speaker: Speaker) = HotseatTheme.type.meta.copy(
-    color = if (speaker == Speaker.candidate) HotseatTheme.palette.pillText else HotseatTheme.palette.text,
+    color = if (speaker == Speaker.candidate) HotseatTheme.palette.pillText else Color(0xFF141210),
     lineHeight = HotseatTheme.type.meta.lineHeight * 1.1f,
 )
 
@@ -121,19 +123,21 @@ private fun Bubble(speaker: Speaker, level: Float, content: @Composable () -> Un
         Box(
             Modifier
                 .widthIn(max = 280.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp,
-                        bottomStart = if (mine) 20.dp else 6.dp,
-                        bottomEnd = if (mine) 6.dp else 20.dp,
-                    ),
-                )
-                .background(if (mine) p.pill else p.glass)
+                .shadow(if (mine) 0.dp else 10.dp, bubbleShape(mine), ambientColor = Color(0x223B5BA8), spotColor = Color(0x223B5BA8))
+                .clip(bubbleShape(mine))
+                .background(if (mine) p.pill else Color.White)
+                .then(if (mine) Modifier else Modifier.border(1.dp, Color(0x14000000), bubbleShape(mine)))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) { content() }
     }
 }
+
+private fun bubbleShape(mine: Boolean) = RoundedCornerShape(
+    topStart = 20.dp,
+    topEnd = 20.dp,
+    bottomStart = if (mine) 20.dp else 6.dp,
+    bottomEnd = if (mine) 6.dp else 20.dp,
+)
 
 @Composable
 private fun Dots(color: Color, size: Dp = 7.dp) {
