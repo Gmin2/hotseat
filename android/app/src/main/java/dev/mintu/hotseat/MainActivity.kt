@@ -21,6 +21,8 @@ class MainActivity : ComponentActivity() {
         if (BuildConfig.DEBUG && intent.hasExtra("probe")) {
             LiveProbe.run(this, lifecycleScope, intent.getIntExtra("probe", 20), intent.getStringExtra("round") ?: "behavioral")
         }
-        setContent { App(startTab = tab, intro = intro, demo = intent.getBooleanExtra("demo", false)) }
+        // adb launches that jump to a tab skip onboarding unless asked for with --ez onboarding true
+        val onboarding = intent.getBooleanExtra("onboarding", !intent.hasExtra("tab") && !intent.hasExtra("probe"))
+        setContent { App(startTab = tab, intro = intro, demo = intent.getBooleanExtra("demo", false), onboarding = onboarding) }
     }
 }

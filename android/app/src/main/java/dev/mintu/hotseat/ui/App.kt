@@ -58,6 +58,7 @@ import dev.mintu.hotseat.ui.practice.Phase
 import dev.mintu.hotseat.ui.tabs.DeleteSheet
 import java.util.UUID
 import dev.mintu.hotseat.ui.brand.Intro
+import dev.mintu.hotseat.ui.onboarding.Onboarding
 import dev.mintu.hotseat.ui.components.Mood
 import dev.mintu.hotseat.ui.components.SkyBackdrop
 import dev.mintu.hotseat.ui.components.TabBar
@@ -74,7 +75,7 @@ import dev.mintu.hotseat.ui.theme.LocalReduceMotion
 import android.graphics.Color as AndroidColor
 
 @Composable
-fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false) {
+fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboarding: Boolean = true) {
     var tab by remember { mutableIntStateOf(startTab) }
     var showIntro by remember { mutableStateOf(intro) }
     val context = LocalContext.current
@@ -213,6 +214,12 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false) {
                 )
                 ReportSheet(practice)
 
+                // first run, or after deleting everything
+                if (onboarding && !saved.profile.onboarded) {
+                    Onboarding(saved.profile) { name, role ->
+                        store.updateProfile { it.copy(name = name, role = role, onboarded = true) }
+                    }
+                }
                 if (showIntro) Intro(onFinished = { showIntro = false })
             }
         }

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none" stroke="#141210" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Smartphone body -->
+  <path d="M337.865 283 L244.335 337 L244.335 349 L337.865 295 Z" fill="#CCD8E8"/>
+  <path d="M62.469 232 L244.335 337 L244.335 349 L62.469 244 Z" fill="#E6EDF7"/>
+  <path d="M156 178 L337.865 283 L244.335 337 L62.469 232 Z" fill="#FFFFFF"/>
+
+  <!-- Screen and bezel details -->
+  <path d="M162.062 190.5 L312.752 277.5 L234.809 322.5 L84.119 235.5 Z" fill="#CFE2FC" stroke-width="1.5"/>
+  <path d="M126.555 203 L107.502 214" stroke-width="3"/>
+  <ellipse cx="91.048" cy="223.5" rx="2.7" ry="1.558" fill="#4989E9" stroke-width="1.5"/>
+  <path d="M292.832 297 L266.851 312" stroke-width="3"/>
+  <path d="M293.698 310.5 L278.109 319.5" stroke-width="1.5"/>
+  <path d="M104.904 262.5 L128.287 276" stroke-width="1.5"/>
+  <path d="M138.679 282 L154.268 291" stroke-width="1.5"/>
+
+  <!-- Small screen graphics -->
+  <path d="M110.1 239.5 L138.679 256" stroke-width="1.5"/>
+  <path d="M104.038 243 L122.225 253.5" stroke-width="1.5"/>
+  <path d="M267.716 265.5 L280.706 273" stroke-width="1.5"/>
+  <ellipse cx="289.366" cy="278" rx="3.5" ry="2.02" fill="#E03143" stroke-width="1.5"/>
+
+  <!-- Sound bars, square in cross section -->
+  <g>
+    <path d="M157.732 200.5 L148.206 206 L148.206 233 L157.732 227.5 Z" fill="#4989E9"/>
+    <path d="M138.68 200.5 L148.206 206 L148.206 233 L138.68 227.5 Z" fill="#7DB0F5"/>
+    <path d="M148.206 195 L157.732 200.5 L148.206 206 L138.68 200.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M175.052 191.5 L165.526 197 L165.526 243 L175.052 237.5 Z" fill="#4989E9"/>
+    <path d="M156 191.5 L165.526 197 L165.526 243 L156 237.5 Z" fill="#7DB0F5"/>
+    <path d="M165.526 186 L175.052 191.5 L165.526 197 L156 191.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M192.372 183.5 L182.846 189 L182.846 253 L192.372 247.5 Z" fill="#4989E9"/>
+    <path d="M173.32 183.5 L182.846 189 L182.846 253 L173.32 247.5 Z" fill="#7DB0F5"/>
+    <path d="M182.846 178 L192.372 183.5 L182.846 189 L173.32 183.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M209.692 180.5 L200.166 186 L200.166 263 L209.692 257.5 Z" fill="#4989E9"/>
+    <path d="M190.64 180.5 L200.166 186 L200.166 263 L190.64 257.5 Z" fill="#7DB0F5"/>
+    <path d="M200.166 175 L209.692 180.5 L200.166 186 L190.64 180.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M227.012 203.5 L217.486 209 L217.486 273 L227.012 267.5 Z" fill="#4989E9"/>
+    <path d="M207.96 203.5 L217.486 209 L217.486 273 L207.96 267.5 Z" fill="#7DB0F5"/>
+    <path d="M217.486 198 L227.012 203.5 L217.486 209 L207.96 203.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M244.332 231.5 L234.806 237 L234.806 283 L244.332 277.5 Z" fill="#4989E9"/>
+    <path d="M225.28 231.5 L234.806 237 L234.806 283 L225.28 277.5 Z" fill="#7DB0F5"/>
+    <path d="M234.806 226 L244.332 231.5 L234.806 237 L225.28 231.5 Z" fill="#CFE2FC"/>
+  </g>
+  <g>
+    <path d="M261.652 260.5 L252.126 266 L252.126 293 L261.652 287.5 Z" fill="#4989E9"/>
+    <path d="M242.6 260.5 L252.126 266 L252.126 293 L242.6 287.5 Z" fill="#7DB0F5"/>
+    <path d="M252.126 255 L261.652 260.5 L252.126 266 L242.6 260.5 Z" fill="#CFE2FC"/>
+  </g>
+
+  <!-- Lower speech bubble slab -->
+  <path d="M264.531 126 L203.909 161 L203.909 169 L264.531 134 Z" fill="#4989E9"/>
+  <path d="M203.909 161 L153.679 132 L153.679 140 L203.909 169 Z" fill="#7DB0F5"/>
+  <path d="M153.679 132 L136.359 142 L136.359 150 L153.679 140 Z" fill="#4989E9"/>
+  <path d="M136.359 142 L120.771 133 L120.771 141 L136.359 150 Z" fill="#7DB0F5"/>
+  <path d="M138.091 123 L110.378 107 L110.378 115 L138.091 131 Z" fill="#7DB0F5"/>
+  <path d="M171 72 L264.531 126 L203.909 161 L153.679 132 L136.359 142 L120.771 133 L138.091 123 L110.378 107 Z" fill="#CFE2FC"/>
+
+  <!-- Upper speech bubble slab -->
+  <path d="M290.531 96 L229.909 131 L229.909 139 L290.531 104 Z" fill="#CCD8E8"/>
+  <path d="M229.909 131 L179.679 102 L179.679 110 L229.909 139 Z" fill="#E6EDF7"/>
+  <path d="M179.679 102 L162.359 112 L162.359 120 L179.679 110 Z" fill="#CCD8E8"/>
+  <path d="M162.359 112 L146.771 103 L146.771 111 L162.359 120 Z" fill="#E6EDF7"/>
+  <path d="M164.091 93 L136.378 77 L136.378 85 L164.091 101 Z" fill="#E6EDF7"/>
+  <path d="M197 42 L290.531 96 L229.909 131 L179.679 102 L162.359 112 L146.771 103 L164.091 93 L136.378 77 Z" fill="#FFFFFF"/>
+
+  <!-- Three round dots on the top plane -->
+  <ellipse cx="190.938" cy="73.5" rx="4.7" ry="2.713" fill="#4989E9" stroke-width="1.5"/>
+  <ellipse cx="213.454" cy="86.5" rx="4.7" ry="2.713" fill="#4989E9" stroke-width="1.5"/>
+  <ellipse cx="235.971" cy="99.5" rx="4.7" ry="2.713" fill="#4989E9" stroke-width="1.5"/>
+</svg>
