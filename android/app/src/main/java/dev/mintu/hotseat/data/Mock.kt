@@ -2,6 +2,8 @@ package dev.mintu.hotseat.data
 
 import androidx.annotation.DrawableRes
 import dev.mintu.hotseat.R
+import dev.mintu.hotseat.live.LiveReport
+import dev.mintu.hotseat.live.ReportAnswer
 import dev.mintu.hotseat.ui.icons.InkIcon
 import dev.mintu.hotseat.ui.icons.InkIcons
 
@@ -16,23 +18,6 @@ enum class Speaker { Interviewer, You }
 
 // one line of the scripted mock interview, at is when it starts in the session
 data class Line(val speaker: Speaker, val text: String, val at: Long, val question: Int, val pushback: Boolean = false)
-
-data class Answer(
-    val question: String,
-    val score: Int,
-    val star: List<Float>,
-    val note: String,
-    val better: String,
-)
-
-data class Report(
-    val score: Int,
-    val summary: String,
-    val duration: String,
-    val wpm: Int,
-    val fillers: Int,
-    val answers: List<Answer>,
-)
 
 data class Session(
     val day: String,
@@ -110,35 +95,35 @@ object Mock {
         else -> behavioral
     }
 
-    private val behavioralReport = Report(
+    private val behavioralReport = LiveReport(
         score = 82,
         summary = "Strong ownership stories. Land the result before you move on.",
         duration = "15:42",
         wpm = 142,
         fillers = 9,
         answers = listOf(
-            Answer(
+            ReportAnswer(
                 "A project you are proud of",
                 78,
                 listOf(0.9f, 0.7f, 0.85f, 0.5f),
                 "Clear situation and action, the result came only after a nudge.",
                 "Open with the offline sync you owned, then say what it saved users: no lost payments in six months.",
             ),
-            Answer(
+            ReportAnswer(
                 "Disagreeing with product",
                 86,
                 listOf(0.8f, 0.9f, 0.9f, 0.8f),
                 "Good use of data to disagree without drama.",
                 "Name the tradeoff you gave up, it shows judgement, not just persistence.",
             ),
-            Answer(
+            ReportAnswer(
                 "Measuring that it worked",
                 90,
                 listOf(0.7f, 0.8f, 0.9f, 1f),
                 "Concrete numbers and a clear window of time.",
                 "Add how you would have noticed if it failed, what alert or metric.",
             ),
-            Answer(
+            ReportAnswer(
                 "Rebuilding it natively",
                 74,
                 listOf(0.6f, 0.6f, 0.8f, 0.6f),
@@ -148,31 +133,31 @@ object Mock {
         ),
     )
 
-    private val technicalReport = Report(
+    private val technicalReport = LiveReport(
         score = 79,
         summary = "You know the platform. Say the tradeoff out loud, not just the API.",
         duration = "14:10",
         wpm = 151,
         fillers = 6,
         answers = listOf(
-            Answer("ViewModel on rotation and process death", 84, listOf(0.9f, 0.8f, 0.85f, 0.7f), "Correct on both cases, the pushback did not rattle you.", "Mention what the user sees after process death, a reload or a restored screen."),
-            Answer("Stopping extra recomposition", 81, listOf(0.8f, 0.8f, 0.9f, 0.7f), "Right tools, stable keys and derivedStateOf.", "Say how you would prove it, layout inspector recomposition counts."),
-            Answer("Testing flows over time", 76, listOf(0.7f, 0.7f, 0.8f, 0.6f), "Named runTest and Turbine but skipped the dispatcher detail.", "Explain why a test dispatcher matters, delays run instantly and deterministically."),
-            Answer("Where WorkManager fits", 74, listOf(0.6f, 0.7f, 0.8f, 0.6f), "Good split between deferrable and immediate work.", "Give a counter example, a timer or an alarm, and what you would use instead."),
+            ReportAnswer("ViewModel on rotation and process death", 84, listOf(0.9f, 0.8f, 0.85f, 0.7f), "Correct on both cases, the pushback did not rattle you.", "Mention what the user sees after process death, a reload or a restored screen."),
+            ReportAnswer("Stopping extra recomposition", 81, listOf(0.8f, 0.8f, 0.9f, 0.7f), "Right tools, stable keys and derivedStateOf.", "Say how you would prove it, layout inspector recomposition counts."),
+            ReportAnswer("Testing flows over time", 76, listOf(0.7f, 0.7f, 0.8f, 0.6f), "Named runTest and Turbine but skipped the dispatcher detail.", "Explain why a test dispatcher matters, delays run instantly and deterministically."),
+            ReportAnswer("Where WorkManager fits", 74, listOf(0.6f, 0.7f, 0.8f, 0.6f), "Good split between deferrable and immediate work.", "Give a counter example, a timer or an alarm, and what you would use instead."),
         ),
     )
 
-    private val designReport = Report(
+    private val designReport = LiveReport(
         score = 71,
         summary = "Clear source of truth. Go deeper on failure cases before scale.",
         duration = "24:36",
         wpm = 138,
         fillers = 11,
         answers = listOf(
-            Answer("Offline first chat, where to start", 82, listOf(0.9f, 0.8f, 0.8f, 0.7f), "Leading with the local database set up everything after it.", "Draw the data flow in one sentence before naming libraries."),
-            Answer("Ordering late messages", 70, listOf(0.7f, 0.6f, 0.8f, 0.6f), "Sequence numbers were right, conflicts were not covered.", "Say what happens when two devices send at the same moment."),
-            Answer("Paging a long chat", 66, listOf(0.6f, 0.6f, 0.7f, 0.5f), "Named Paging 3 but not how the cache is kept small.", "Add a limit on stored pages and when old ones get evicted."),
-            Answer("What to measure after launch", 68, listOf(0.6f, 0.7f, 0.7f, 0.6f), "Useful metrics, no targets.", "Put a number on each one, like send success above 99.5 percent."),
+            ReportAnswer("Offline first chat, where to start", 82, listOf(0.9f, 0.8f, 0.8f, 0.7f), "Leading with the local database set up everything after it.", "Draw the data flow in one sentence before naming libraries."),
+            ReportAnswer("Ordering late messages", 70, listOf(0.7f, 0.6f, 0.8f, 0.6f), "Sequence numbers were right, conflicts were not covered.", "Say what happens when two devices send at the same moment."),
+            ReportAnswer("Paging a long chat", 66, listOf(0.6f, 0.6f, 0.7f, 0.5f), "Named Paging 3 but not how the cache is kept small.", "Add a limit on stored pages and when old ones get evicted."),
+            ReportAnswer("What to measure after launch", 68, listOf(0.6f, 0.7f, 0.7f, 0.6f), "Useful metrics, no targets.", "Put a number on each one, like send success above 99.5 percent."),
         ),
     )
 

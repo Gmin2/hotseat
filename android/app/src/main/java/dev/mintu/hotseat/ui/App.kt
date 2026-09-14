@@ -2,7 +2,11 @@ package dev.mintu.hotseat.ui
 
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
@@ -23,7 +27,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,17 +39,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.mintu.hotseat.live.LiveClient
+import dev.mintu.hotseat.live.LiveProbe
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.ui.brand.Intro
 import dev.mintu.hotseat.ui.components.Mood
 import dev.mintu.hotseat.ui.components.SkyBackdrop
 import dev.mintu.hotseat.ui.components.TabBar
-import dev.mintu.hotseat.ui.practice.Phase
+import dev.mintu.hotseat.ui.practice.Practice
 import dev.mintu.hotseat.ui.practice.PracticeScreen
 import dev.mintu.hotseat.ui.practice.ReportSheet
 import dev.mintu.hotseat.ui.practice.RoundSheet
-import dev.mintu.hotseat.ui.practice.rememberPractice
 import dev.mintu.hotseat.ui.tabs.ProgressTab
 import dev.mintu.hotseat.ui.tabs.SessionsTab
 import dev.mintu.hotseat.ui.tabs.YouTab
@@ -52,10 +64,38 @@ import dev.mintu.hotseat.ui.theme.HotseatTheme
 import android.graphics.Color as AndroidColor
 
 @Composable
-fun App(startTab: Int = 0, intro: Boolean = false) {
+fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false) {
     var tab by remember { mutableIntStateOf(startTab) }
     var showIntro by remember { mutableStateOf(intro) }
-    val practice = rememberPractice()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val api = remember { LiveProbe.api(context) }
+    val practice = remember {
+        Practice(
+            scope = scope,
+            newSession = { LiveClient(context, api, scope) },
+            score = { round, seconds, turns -> api.report(round, seconds, turns) },
+        ).also { it.demo = demo }
+    }
+
+    val mic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) practice.start() else practice.micDenied()
+    }
+    val startWithMic = {
+        if (practice.demo || ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) practice.start()
+        else mic.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // leaving the app mid interview ends it, a session should never keep the mic or the meter running in the background
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) practice.end() }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            practice.dispose()
+        }
+    }
 
     val mood = if (tab == 0) practice.mood else Mood.Day
     val dark = mood == Mood.Night || mood == Mood.Overcast
@@ -80,11 +120,9 @@ fun App(startTab: Int = 0, intro: Boolean = false) {
                 label = "tab",
             ) { current ->
                 when (current) {
-                    0 -> PracticeScreen(practice)
-                    1 -> SessionsTab(onOpen = {
-                        practice.elapsed = Mock.totalMs
-                        practice.playing = false
-                        practice.phase = Phase.Report
+                    0 -> PracticeScreen(practice, onNeedMic = startWithMic)
+                    1 -> SessionsTab(onOpen = { session ->
+                        practice.showDemo(Mock.rounds.indexOfFirst { it.title == session.round }.coerceAtLeast(0))
                         tab = 0
                     })
                     2 -> ProgressTab()
@@ -113,7 +151,7 @@ fun App(startTab: Int = 0, intro: Boolean = false) {
                 Spacer(Modifier.height(Dimens.tabBarBottom))
             }
 
-            RoundSheet(practice)
+            RoundSheet(practice, onStart = startWithMic)
             ReportSheet(practice)
 
             if (showIntro) Intro(onFinished = { showIntro = false })

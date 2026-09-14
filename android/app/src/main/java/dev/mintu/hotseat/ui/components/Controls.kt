@@ -51,7 +51,7 @@ import dev.mintu.hotseat.ui.icons.InkMotion
 import dev.mintu.hotseat.ui.theme.Dimens
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 
-enum class ChipState { Ready, Live, Done }
+enum class ChipState { Ready, Connecting, Live, Done }
 
 @Composable
 fun StatusChip(state: ChipState, modifier: Modifier = Modifier) {
@@ -62,6 +62,7 @@ fun StatusChip(state: ChipState, modifier: Modifier = Modifier) {
     val dot by animateColorAsState(
         when (state) {
             ChipState.Ready -> Color(0xFF34C759)
+            ChipState.Connecting -> Color(0xFFE08A1E)
             ChipState.Live -> p.playhead
             ChipState.Done -> p.tabTint
         },
@@ -85,7 +86,7 @@ fun StatusChip(state: ChipState, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(10.dp))
         Box(contentAlignment = Alignment.Center) {
-            if (state == ChipState.Live) {
+            if (state == ChipState.Live || state == ChipState.Connecting) {
                 Box(Modifier.size(8.dp).scale(glow).clip(CircleShape).background(dot.copy(alpha = 0.3f)))
             }
             Box(Modifier.size(8.dp).clip(CircleShape).background(dot))

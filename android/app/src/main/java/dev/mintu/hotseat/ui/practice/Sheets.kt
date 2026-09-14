@@ -20,12 +20,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,7 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import dev.mintu.hotseat.data.Answer
+import dev.mintu.hotseat.live.ReportAnswer
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.ui.components.Hairline
 import dev.mintu.hotseat.ui.components.Segmented
@@ -53,7 +55,7 @@ private val ink = Palette.Light
 private val type = Type.Default
 
 @Composable
-fun BoxScope.RoundSheet(state: Practice) {
+fun BoxScope.RoundSheet(state: Practice, onStart: () -> Unit) {
     Sheet(state.picking, onDismiss = { state.picking = false }) {
         BasicText("Pick a round", style = type.headline.copy(color = ink.text, fontSize = type.headline.fontSize * 0.82f))
         BasicText("The interviewer adapts to what you say, so no two runs match.", Modifier.padding(top = 6.dp), style = type.meta.copy(color = ink.caption))
@@ -68,13 +70,18 @@ fun BoxScope.RoundSheet(state: Practice) {
             }
         }
 
+        if (state.round == 3) {
+            Label("Job post")
+            JobPostField(state.jobPost) { state.jobPost = it }
+        }
+
         Label("Difficulty")
         Segmented(Mock.difficulties, state.difficulty, { state.difficulty = it })
         Label("Interviewer")
         Segmented(Mock.styles, state.style, { state.style = it })
 
         Spacer(Modifier.height(24.dp))
-        PrimaryButton("Start interview") { state.start() }
+        PrimaryButton(if (state.canStart) "Start interview" else "Paste a job post to start", enabled = state.canStart) { onStart() }
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -126,7 +133,7 @@ private fun RoundCard(title: String, blurb: String, art: Int, icon: InkIcon, sel
 
 @Composable
 fun BoxScope.ReportSheet(state: Practice) {
-    val report = Mock.report(state.round)
+    val report = state.report ?: return
     Sheet(state.reviewing, onDismiss = { state.reviewing = false }) {
         BasicText("YOUR REPORT", style = type.tabLabel.copy(color = ink.caption))
         Row(verticalAlignment = Alignment.Bottom) {
@@ -141,16 +148,12 @@ fun BoxScope.ReportSheet(state: Practice) {
             AnswerRow(i + 1, answer)
         }
         Spacer(Modifier.height(16.dp))
-        PrimaryButton("Practice again") {
-            state.reviewing = false
-            state.phase = Phase.Idle
-            state.elapsed = 0
-        }
+        PrimaryButton("Practice again") { state.backToIdle() }
     }
 }
 
 @Composable
-private fun AnswerRow(number: Int, answer: Answer) {
+private fun AnswerRow(number: Int, answer: ReportAnswer) {
     Column(Modifier.padding(vertical = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BasicText("Q$number", style = type.tabLabel.copy(color = ink.caption))
@@ -204,12 +207,35 @@ fun ScorePill(score: Int) {
 }
 
 @Composable
+private fun JobPostField(value: String, onChange: (String) -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 110.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFFF6F6F8))
+            .border(1.dp, Color(0x14000000), RoundedCornerShape(18.dp))
+            .padding(14.dp),
+    ) {
+        if (value.isEmpty()) {
+            BasicText("Paste the role description, responsibilities and must haves.", style = type.meta.copy(color = ink.caption))
+        }
+        BasicTextField(
+            value,
+            { onChange(it.take(6000)) },
+            Modifier.fillMaxWidth(),
+            textStyle = type.meta.copy(color = ink.text),
+        )
+    }
+}
+
+@Composable
 private fun Label(text: String) {
     BasicText(text.uppercase(), Modifier.padding(top = 18.dp, bottom = 8.dp), style = type.tabLabel.copy(color = ink.caption))
 }
 
 @Composable
-fun PrimaryButton(text: String, onClick: () -> Unit) {
+fun PrimaryButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     val press = remember { MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "button press")
@@ -219,8 +245,8 @@ fun PrimaryButton(text: String, onClick: () -> Unit) {
             .height(54.dp)
             .scale(scale)
             .clip(CircleShape)
-            .background(ink.pill)
-            .clickable(press, indication = null, onClick = onClick),
+            .background(if (enabled) ink.pill else ink.pill.copy(alpha = 0.3f))
+            .clickable(press, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(text, style = type.pill.copy(color = Color.White))
