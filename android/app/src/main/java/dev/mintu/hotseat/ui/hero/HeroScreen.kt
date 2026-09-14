@@ -25,7 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +48,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.R
+import dev.mintu.hotseat.ui.icons.GlassIcon
+import dev.mintu.hotseat.ui.icons.GlassIcons
+import dev.mintu.hotseat.ui.icons.GlassMotion
 import dev.mintu.hotseat.ui.theme.Dimens
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 import dev.mintu.hotseat.ui.theme.Sky
@@ -62,13 +70,13 @@ data class HeroState(
 )
 
 val tabs = listOf(
-    Tab("Practice", R.drawable.ic_mic),
-    Tab("Sessions", R.drawable.ic_history),
-    Tab("Progress", R.drawable.ic_chart),
-    Tab("More", R.drawable.ic_menu),
+    Tab("Practice", GlassIcons.Practice, GlassMotion.Bob),
+    Tab("Sessions", GlassIcons.Sessions, GlassMotion.Tilt),
+    Tab("Progress", GlassIcons.Progress, GlassMotion.Draw),
+    Tab("More", GlassIcons.More, GlassMotion.Spin),
 )
 
-data class Tab(val label: String, @DrawableRes val icon: Int)
+data class Tab(val label: String, val icon: GlassIcon, val motion: GlassMotion)
 
 private fun dots(parts: List<String>) = parts.joinToString(" · ")
 
@@ -118,7 +126,7 @@ fun HeroScreen(
                     style = t.display.copy(color = p.display),
                 )
                 Spacer(Modifier.weight(1f))
-                GlassButton(R.drawable.ic_arrow_right, onArrow)
+                GlassButton(onArrow)
             }
             BasicText(dots(state.meta), Modifier.padding(start = Dimens.gutter), style = t.meta.copy(color = p.meta))
             BasicText(
@@ -146,15 +154,23 @@ private fun StatusChip(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(R.drawable.ic_mic, p.glassGlyph, 16.dp)
+        var pulse by remember { mutableIntStateOf(0) }
+        GlassIcon(
+            GlassIcons.Sparkle,
+            20.dp,
+            Modifier.clickable(remember { MutableInteractionSource() }, indication = null) { pulse++ },
+            motion = GlassMotion.Spin,
+            pulse = pulse,
+        )
         Spacer(Modifier.width(10.dp))
         Box(Modifier.size(8.dp).clip(CircleShape).background(p.playhead))
     }
 }
 
 @Composable
-private fun GlassButton(@DrawableRes icon: Int, onClick: () -> Unit) {
+private fun GlassButton(onClick: () -> Unit) {
     val p = HotseatTheme.palette
+    var pulse by remember { mutableIntStateOf(0) }
     Box(
         Modifier
             .size(Dimens.arrowWidth, Dimens.arrowHeight)
@@ -162,10 +178,13 @@ private fun GlassButton(@DrawableRes icon: Int, onClick: () -> Unit) {
             .clip(CircleShape)
             .background(p.glass)
             .border(1.dp, p.glassEdge, CircleShape)
-            .clickable(onClick = onClick),
+            .clickable {
+                pulse++
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, p.glassGlyph, 18.dp)
+        GlassIcon(GlassIcons.Next, 24.dp, tint = p.glassGlyph, motion = GlassMotion.Nudge, pulse = pulse)
     }
 }
 
@@ -267,20 +286,24 @@ private fun TabBar(selected: Int, onTab: (Int) -> Unit) {
             .background(p.tabBar)
             .padding(Dimens.tabActiveInset),
     ) {
+        val pulses = remember { mutableStateListOf(*Array(tabs.size) { 0 }) }
         tabs.forEachIndexed { i, tab ->
             val active = i == selected
-            val tint = if (active) p.tabTint else p.tabLabel
+            val tint by animateColorAsState(if (active) p.tabTint else p.tabLabel, tween(220), label = "tab tint")
             Column(
                 Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape((Dimens.tabBarHeight - Dimens.tabActiveInset * 2) / 2))
                     .background(if (active) p.tabActive else Color.Transparent)
-                    .clickable(remember { MutableInteractionSource() }, indication = null) { onTab(i) },
+                    .clickable(remember { MutableInteractionSource() }, indication = null) {
+                        pulses[i]++
+                        onTab(i)
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(tab.icon, tint, 20.dp)
+                GlassIcon(tab.icon, 24.dp, tint = tint, motion = tab.motion, pulse = pulses[i])
                 BasicText(tab.label, Modifier.padding(top = 3.dp), style = t.tabLabel.copy(color = tint))
             }
         }
