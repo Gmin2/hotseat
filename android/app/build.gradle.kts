@@ -21,13 +21,37 @@ android {
         applicationId = "dev.mintu.hotseat"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // ci sets these from the tag, local builds stay at the defaults
+        versionCode = hotseat("versionCode", "1").toInt()
+        versionName = hotseat("versionName", "0.1.0")
 
         // the deployed worker and its key live in local.properties (not committed), -P overrides them,
         // and with neither the app talks to wrangler dev on the mac through adb reverse
         buildConfigField("String", "WORKER_URL", "\"${hotseat("workerUrl", "http://127.0.0.1:8790")}\"")
         buildConfigField("String", "APP_KEY", "\"${hotseat("appKey", "dev")}\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            // the keystore never goes in git, locally it is in local.properties, in ci it comes from secrets
+            hotseat("keystore", "").takeIf { it.isNotEmpty() }?.let {
+                storeFile = rootProject.file(it)
+                storePassword = hotseat("keystorePassword", "")
+                keyAlias = hotseat("keyAlias", "hotseat")
+                keyPassword = hotseat("keyPassword", "")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
+            // phones are arm64, dropping the other webrtc builds takes most of the size off
+            ndk { abiFilters += "arm64-v8a" }
+        }
     }
 
     buildFeatures {

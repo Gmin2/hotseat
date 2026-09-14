@@ -6,6 +6,8 @@
 
 <p align="center">practice job interviews out loud. a voice interviewer asks, listens and follows up, then you get a report on every answer.</p>
 
+<p align="center"><a href="https://github.com/Gmin2/hotseat/releases/latest"><b>download the android apk</b></a></p>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="media/demo-dark.gif">
