@@ -1,5 +1,6 @@
 package dev.mintu.hotseat.ui.art
 
+import dev.mintu.hotseat.ui.theme.loop
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -30,9 +31,8 @@ import kotlin.math.sin
 @Composable
 fun HotseatScene(level: Float, modifier: Modifier = Modifier) {
     val scene = IsoScenes.Hotseat
-    val clock = rememberInfiniteTransition(label = "scene")
-    val t by clock.animateFloat(0f, 1f, infiniteRepeatable(tween(4000, easing = LinearEasing)), label = "t")
-    val float by clock.animateFloat(-1f, 1f, infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "float")
+    val t = loop(4000, "scene t")
+    val float = loop(2600, "scene float", reverse = true, easing = FastOutSlowInEasing, still = 0.5f) * 2f - 1f
     val voice by animateFloatAsState(level, spring(dampingRatio = 0.5f, stiffness = 220f), label = "scene voice")
 
     var taps by remember { mutableIntStateOf(0) }
@@ -67,9 +67,8 @@ fun HotseatScene(level: Float, modifier: Modifier = Modifier) {
 /** The smaller scenes that sit between a tab title and its big number. Parts grow in once, then idle. */
 @Composable
 fun TabScene(scene: IsoScene, modifier: Modifier = Modifier) {
-    val clock = rememberInfiniteTransition(label = "tab scene")
-    val t by clock.animateFloat(0f, 1f, infiniteRepeatable(tween(3000, easing = LinearEasing)), label = "t")
-    val float by clock.animateFloat(-1f, 1f, infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "float")
+    val t = loop(3000, "tab scene t")
+    val float = loop(2400, "tab scene float", reverse = true, easing = FastOutSlowInEasing, still = 0.5f) * 2f - 1f
     val grow = remember(scene) { Animatable(0f) }
     LaunchedEffect(scene) { grow.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 120f)) }
 

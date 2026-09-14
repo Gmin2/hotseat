@@ -1,5 +1,6 @@
 package dev.mintu.hotseat.ui.brand
 
+import dev.mintu.hotseat.ui.theme.LocalReduceMotion
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -90,8 +91,9 @@ fun IdleMascot(size: Dp, modifier: Modifier = Modifier, mic: Float = 0f, pulse: 
     val open = remember { Animatable(1f) }
     val wing = remember { Animatable(0f) }
     val hop = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        while (true) {
+    val reduce = LocalReduceMotion.current
+    LaunchedEffect(reduce) {
+        while (!reduce) {
             delay(2_800L + Random.nextLong(2_600))
             open.animateTo(0f, tween(90))
             open.animateTo(1f, tween(140))

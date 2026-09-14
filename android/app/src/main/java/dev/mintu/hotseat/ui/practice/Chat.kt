@@ -45,6 +45,7 @@ import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.Turn
 import dev.mintu.hotseat.ui.brand.IdleMascot
 import dev.mintu.hotseat.ui.theme.HotseatTheme
+import dev.mintu.hotseat.ui.theme.loop
 
 /** What the chat shows at the bottom while nobody's words have landed yet. */
 enum class Typing { None, Interviewer, Candidate }
@@ -141,14 +142,9 @@ private fun bubbleShape(mine: Boolean) = RoundedCornerShape(
 
 @Composable
 private fun Dots(color: Color, size: Dp = 7.dp) {
-    val beat = rememberInfiniteTransition(label = "typing")
     Row(Modifier.padding(vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         repeat(3) { i ->
-            val bob by beat.animateFloat(
-                0f, 1f,
-                infiniteRepeatable(tween(560, delayMillis = i * 140), RepeatMode.Reverse),
-                label = "dot $i",
-            )
+            val bob = loop(560, "dot $i", reverse = true, delayMs = i * 140, still = 0.6f)
             Box(
                 Modifier
                     .size(size)

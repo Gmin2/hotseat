@@ -153,7 +153,7 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                 )
             }
             BasicText(
-                dots(round.title, Mock.role),
+                dots(round.title, state.role.ifBlank { Mock.role }),
                 Modifier.padding(start = Dimens.gutter),
                 style = t.meta.copy(color = p.meta),
             )

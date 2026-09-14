@@ -27,9 +27,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import android.provider.Settings
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +51,12 @@ import dev.mintu.hotseat.live.LiveClient
 import dev.mintu.hotseat.live.LiveProbe
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Mock
+import dev.mintu.hotseat.data.SavedSession
+import dev.mintu.hotseat.data.Store
+import dev.mintu.hotseat.ui.practice.Finished
+import dev.mintu.hotseat.ui.practice.Phase
+import dev.mintu.hotseat.ui.tabs.DeleteSheet
+import java.util.UUID
 import dev.mintu.hotseat.ui.brand.Intro
 import dev.mintu.hotseat.ui.components.Mood
 import dev.mintu.hotseat.ui.components.SkyBackdrop
@@ -61,6 +70,7 @@ import dev.mintu.hotseat.ui.tabs.SessionsTab
 import dev.mintu.hotseat.ui.tabs.YouTab
 import dev.mintu.hotseat.ui.theme.Dimens
 import dev.mintu.hotseat.ui.theme.HotseatTheme
+import dev.mintu.hotseat.ui.theme.LocalReduceMotion
 import android.graphics.Color as AndroidColor
 
 @Composable
@@ -70,12 +80,38 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val api = remember { LiveProbe.api(context) }
+    val store = remember { Store.get(context) }
     val practice = remember {
         Practice(
             scope = scope,
             newSession = { LiveClient(context, api, scope) },
             score = { round, seconds, turns -> api.report(round, seconds, turns) },
+            onFinished = { done ->
+                store.addSession(
+                    SavedSession(
+                        id = UUID.randomUUID().toString(),
+                        round = done.roundIndex,
+                        startedAt = System.currentTimeMillis() - (done.seconds * 1000).toLong(),
+                        seconds = done.seconds,
+                        turns = done.turns,
+                        report = done.report,
+                    ),
+                )
+            },
         ).also { it.demo = demo }
+    }
+    val saved by store.saved.collectAsState()
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    // the You tab settings are the defaults for the next interview
+    LaunchedEffect(saved.profile) {
+        val profile = saved.profile
+        if (practice.phase == Phase.Idle) {
+            practice.role = profile.role
+            practice.style = profile.style
+            practice.difficulty = profile.difficulty
+            practice.minutes = profile.minutes
+        }
     }
 
     val mic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -110,51 +146,75 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false) {
         activity?.enableEdgeToEdge(style, style)
     }
 
-    HotseatTheme(dark = dark) {
-        Box(Modifier.fillMaxSize()) {
-            SkyBackdrop(mood, level)
+    // honour the system "remove animations" switch for the ambient loops
+    val reduceMotion = remember { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
 
-            AnimatedContent(
-                tab,
-                transitionSpec = { (fadeIn(tween(260)) + scaleIn(tween(260), initialScale = 0.98f)).togetherWith(fadeOut(tween(160))) },
-                label = "tab",
-            ) { current ->
-                when (current) {
-                    0 -> PracticeScreen(practice, onNeedMic = startWithMic)
-                    1 -> SessionsTab(onOpen = { session ->
-                        practice.showDemo(Mock.rounds.indexOfFirst { it.title == session.round }.coerceAtLeast(0))
-                        tab = 0
-                    })
-                    2 -> ProgressTab()
-                    else -> YouTab()
+    CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
+        HotseatTheme(dark = dark) {
+            Box(Modifier.fillMaxSize()) {
+                SkyBackdrop(mood, level)
+
+                AnimatedContent(
+                    tab,
+                    transitionSpec = { (fadeIn(tween(260)) + scaleIn(tween(260), initialScale = 0.98f)).togetherWith(fadeOut(tween(160))) },
+                    label = "tab",
+                ) { current ->
+                    when (current) {
+                        0 -> PracticeScreen(practice, onNeedMic = startWithMic)
+                        1 -> SessionsTab(
+                            saved,
+                            onOpenSaved = { session ->
+                                practice.openFinished(Finished(session.round, session.seconds, session.turns, session.report))
+                                tab = 0
+                            },
+                            onOpenSample = { round ->
+                                practice.showDemo(round)
+                                tab = 0
+                            },
+                        )
+                        2 -> ProgressTab(saved)
+                        else -> YouTab(saved, onProfile = store::updateProfile, onDeleteAll = { confirmDelete = true })
+                    }
                 }
+
+                // scrolled content fades out under the status bar and under the floating tab bar
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.statusBars.add(WindowInsets(top = 20.dp)))
+                        .background(Brush.verticalGradient(listOf(top, top.copy(alpha = 0.85f), top.copy(alpha = 0f)))),
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(Dimens.tabBarBottom + Dimens.tabBarHeight + 40.dp)
+                        .background(Brush.verticalGradient(listOf(floor.copy(alpha = 0f), floor.copy(alpha = 0.9f), floor))),
+                )
+
+                Column(Modifier.align(Alignment.BottomCenter)) {
+                    TabBar(tab, { tab = it })
+                    Spacer(Modifier.height(Dimens.tabBarBottom))
+                }
+
+                RoundSheet(practice, onStart = startWithMic)
+                DeleteSheet(
+                    visible = confirmDelete,
+                    interviews = saved.sessions.size,
+                    onCancel = { confirmDelete = false },
+                    onDelete = {
+                        practice.end()
+                        practice.backToIdle()
+                        store.deleteAll()
+                        confirmDelete = false
+                        tab = 0
+                    },
+                )
+                ReportSheet(practice)
+
+                if (showIntro) Intro(onFinished = { showIntro = false })
             }
-
-            // scrolled content fades out under the status bar and under the floating tab bar
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .windowInsetsTopHeight(WindowInsets.statusBars.add(WindowInsets(top = 20.dp)))
-                    .background(Brush.verticalGradient(listOf(top, top.copy(alpha = 0.85f), top.copy(alpha = 0f)))),
-            )
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(Dimens.tabBarBottom + Dimens.tabBarHeight + 40.dp)
-                    .background(Brush.verticalGradient(listOf(floor.copy(alpha = 0f), floor.copy(alpha = 0.9f), floor))),
-            )
-
-            Column(Modifier.align(Alignment.BottomCenter)) {
-                TabBar(tab, { tab = it })
-                Spacer(Modifier.height(Dimens.tabBarBottom))
-            }
-
-            RoundSheet(practice, onStart = startWithMic)
-            ReportSheet(practice)
-
-            if (showIntro) Intro(onFinished = { showIntro = false })
         }
     }
 }

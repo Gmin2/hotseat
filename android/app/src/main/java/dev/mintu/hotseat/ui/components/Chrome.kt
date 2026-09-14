@@ -99,7 +99,7 @@ fun TabBar(selected: Int, onTab: (Int) -> Unit, modifier: Modifier = Modifier) {
 
 /** White sheet that springs up from the bottom over a dimmed screen. */
 @Composable
-fun BoxScope.Sheet(visible: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun BoxScope.Sheet(visible: Boolean, onDismiss: () -> Unit, fraction: Float = 0.86f, content: @Composable ColumnScope.() -> Unit) {
     AnimatedVisibility(visible, enter = fadeIn(tween(220)), exit = fadeOut(tween(200))) {
         Box(
             Modifier
@@ -117,7 +117,7 @@ fun BoxScope.Sheet(visible: Boolean, onDismiss: () -> Unit, content: @Composable
         Column(
             Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.86f)
+                .then(if (fraction < 1f) Modifier.fillMaxHeight(fraction) else Modifier)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(Color.White)
                 .clickable(remember { MutableInteractionSource() }, indication = null) {}

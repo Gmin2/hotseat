@@ -55,6 +55,7 @@ class Practice(
     var style by mutableIntStateOf(0)
     var minutes by mutableIntStateOf(15)
     var jobPost by mutableStateOf("")
+    var role by mutableStateOf(Mock.role)
     var demo by mutableStateOf(false)
 
     var picking by mutableStateOf(false)
@@ -85,7 +86,7 @@ class Practice(
         round = roundKeys[round],
         difficulty = difficultyKeys[difficulty],
         style = styleKeys[style],
-        role = Mock.role,
+        role = role.ifBlank { Mock.role },
         minutes = minutes,
         jobPost = jobPost.trim().takeIf { round == 3 && it.isNotEmpty() },
     )
