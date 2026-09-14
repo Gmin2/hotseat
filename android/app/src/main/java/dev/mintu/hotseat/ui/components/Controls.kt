@@ -30,6 +30,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -111,7 +117,7 @@ fun RoundButton(onClick: () -> Unit, modifier: Modifier = Modifier, icon: InkIco
     }
 }
 
-enum class PlayState { Play, Pause, Replay }
+enum class PlayState { Play, Pause, Replay, Mic, MicOff }
 
 @Composable
 fun PlayButton(state: PlayState, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -130,6 +136,8 @@ fun PlayButton(state: PlayState, onClick: () -> Unit, modifier: Modifier = Modif
     ) {
         when (state) {
             PlayState.Replay -> InkIcon(InkIcons.Clock, 16.dp, p.playGlyph, motion = InkMotion.Spin, pulse = pulse)
+            PlayState.Mic -> InkIcon(InkIcons.Mic, 16.dp, p.playGlyph, motion = InkMotion.Pop, pulse = pulse)
+            PlayState.MicOff -> InkIcon(InkIcons.MicOff, 16.dp, p.playGlyph, motion = InkMotion.Wiggle, pulse = pulse)
             PlayState.Pause -> Canvas(Modifier.size(11.dp)) {
                 val w = size.width * 0.3f
                 drawRect(p.playGlyph, Offset(size.width * 0.08f, 0f), Size(w, size.height))
@@ -145,6 +153,34 @@ fun PlayButton(state: PlayState, onClick: () -> Unit, modifier: Modifier = Modif
                 drawPath(path, p.playGlyph)
             }
         }
+    }
+}
+
+/** The red stop pill that ends a running interview. [label] says what tapping it does right now. */
+@Composable
+fun EndButton(label: String, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "end press")
+    val fill by animateColorAsState(if (enabled) Color(0xFFE03143) else Color(0xFFB9C0CC), tween(200), label = "end fill")
+    Row(
+        modifier
+            .height(Dimens.arrowHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(if (enabled) 12.dp else 0.dp, CircleShape, ambientColor = Color(0x55E03143), spotColor = Color(0x55E03143))
+            .clip(CircleShape)
+            .background(fill)
+            .clickable(press, indication = null, enabled = enabled, onClick = onClick)
+            .semantics { contentDescription = label }
+            .padding(start = 14.dp, end = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(Color.White))
+        Spacer(Modifier.width(8.dp))
+        BasicText(label, style = HotseatTheme.type.pill.copy(color = Color.White))
     }
 }
 
