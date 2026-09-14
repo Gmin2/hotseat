@@ -20,6 +20,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonPrimitive
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
+import org.webrtc.AudioTrackSink
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
@@ -30,6 +31,7 @@ import org.webrtc.RtpReceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.audio.JavaAudioDeviceModule
+import java.io.File
 import java.nio.ByteBuffer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -50,6 +52,8 @@ interface LiveSession {
     val candidateLevel: StateFlow<Float>
     suspend fun start(setup: InterviewSetup): SessionResponse
     suspend fun stop(): LiveEvent.Closed?
+    /** The interviewer's voice for replaying a turn, null when there is none. */
+    val voice: VoiceSource? get() = null
     fun setMuted(muted: Boolean)
     fun release()
 }
@@ -82,6 +86,10 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
     private var channel: DataChannel? = null
     private var stats: Job? = null
     private var closed = CompletableDeferred<LiveEvent.Closed>()
+    private var remote: AudioTrack? = null
+    private var tape: VoiceTape? = null
+    private val sink = AudioTrackSink { data, bits, rate, channels, frames, _ -> tape?.write(data, bits, rate, channels, frames) }
+    override val voice: VoiceSource? get() = tape
 
     var session: SessionResponse? = null
         private set
@@ -94,6 +102,7 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         initWebRtc(app)
         closed = CompletableDeferred()
         routeToSpeaker(true)
+        tape = VoiceTape(tapeFile())
 
         val module = JavaAudioDeviceModule.builder(app)
             .setUseHardwareAcousticEchoCanceler(true)
@@ -139,7 +148,12 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
             override fun onRemoveStream(stream: MediaStream) = Unit
             override fun onDataChannel(channel: DataChannel) = Unit
             override fun onRenegotiationNeeded() = Unit
-            override fun onAddTrack(receiver: RtpReceiver, streams: Array<out MediaStream>) = Unit
+            override fun onAddTrack(receiver: RtpReceiver, streams: Array<out MediaStream>) {
+                (receiver.track() as? AudioTrack)?.let { track ->
+                    remote = track
+                    track.addSink(sink)
+                }
+            }
         }) ?: error("could not create a peer connection")
         peer = pc
         pc.addTrack(mic, listOf("hotseat"))
@@ -201,8 +215,11 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         return result
     }
 
+    // the tape outlives the call, whoever saves the interview closes it
     override fun release() {
         stats?.cancel()
+        remote?.let { runCatching { it.removeSink(sink) } }
+        remote = null
         channel?.unregisterObserver()
         channel?.close()
         peer?.close()
@@ -226,6 +243,13 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         mark("greeting sent")
         val content = JsonPrimitive(greeting).toString()
         send("""{"type":"session.commentary.append","delegation_id":null,"content":$content}""")
+    }
+
+    private fun tapeFile(): File {
+        val dir = File(app.cacheDir, "tapes").apply { mkdirs() }
+        // a tape from an interview that never got saved is left behind, clear anything older than an hour
+        dir.listFiles()?.filter { it.lastModified() < System.currentTimeMillis() - 3_600_000 }?.forEach { it.delete() }
+        return File(dir, "${System.currentTimeMillis()}.pcm")
     }
 
     private fun send(text: String) {

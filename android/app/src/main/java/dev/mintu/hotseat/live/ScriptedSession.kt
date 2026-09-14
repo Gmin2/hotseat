@@ -19,10 +19,13 @@ class ScriptedSession(private val context: Context, private val scope: Coroutine
     override val interviewerLevel = MutableStateFlow(0f)
     override val candidateLevel = MutableStateFlow(0f)
     private var job: Job? = null
+    private var tape: VoiceTape? = null
+    override val voice: VoiceSource? get() = tape
 
     override suspend fun start(setup: InterviewSetup): SessionResponse {
         val lines = context.assets.open("fixtures/technical-session.events.jsonl").bufferedReader().readLines()
         val parsed = lines.filter { it.isNotBlank() }.map(::parseEvent)
+        tape = toneTape(parsed.filterIsInstance<LiveEvent.Delta>())
         job = scope.launch {
             step.value = ConnectStep.Calling
             delay(300)
@@ -57,6 +60,24 @@ class ScriptedSession(private val context: Context, private val scope: Coroutine
     }
 
     override fun setMuted(muted: Boolean) = Unit
+
+    // there is no recorded voice for the fixture, a soft hum where the interviewer talks stands in for it
+    private fun toneTape(deltas: List<LiveEvent.Delta>): VoiceTape {
+        val turns = deltas.fold(Transcript()) { t, d -> t.also { it.add(d) } }.all.filter { it.speaker == Speaker.interviewer }
+        val rate = VoiceTape.RATE
+        val total = ((turns.maxOfOrNull { it.endMs } ?: 0L) + 2_000L) * rate / 1000
+        val pcm = ShortArray(total.toInt())
+        turns.forEach { turn ->
+            val from = (turn.startMs * rate / 1000).toInt()
+            val to = minOf(pcm.size, (turn.endMs * rate / 1000).toInt())
+            for (i in from until to) {
+                val t = (i - from).toDouble() / rate
+                val envelope = minOf(1.0, t * 20, (to - i).toDouble() / rate * 20) * (0.6 + 0.4 * kotlin.math.sin(t * 9))
+                pcm[i] = (envelope * 3000 * kotlin.math.sin(2 * Math.PI * 262 * t)).toInt().toShort()
+            }
+        }
+        return VoiceTape(java.io.File(context.cacheDir, "scripted.pcm"), now = { 0L }).also { it.write(pcm, rate) }
+    }
 
     override fun release() {
         job?.cancel()

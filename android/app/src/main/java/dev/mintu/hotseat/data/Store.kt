@@ -1,7 +1,11 @@
 package dev.mintu.hotseat.data
 
 import dev.mintu.hotseat.live.LiveReport
+import dev.mintu.hotseat.live.SavedVoice
+import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.Turn
+import dev.mintu.hotseat.live.VoiceSource
+import dev.mintu.hotseat.live.Wav
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -34,7 +38,8 @@ data class Saved(val profile: Profile = Profile(), val sessions: List<SavedSessi
 
 /**
  * Everything Hotseat keeps lives in one json file in the app's private storage: the profile and finished interviews.
- * Nothing is kept on the worker. [deleteAll] removes the file and resets to a fresh install.
+ * The interviewer's voice sits next to it, one folder of wavs per interview. Nothing is kept on the worker.
+ * [deleteAll] removes all of it and resets to a fresh install.
  */
 class Store(private val file: File) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -63,17 +68,37 @@ class Store(private val file: File) {
     fun addSession(session: SavedSession) =
         write(_saved.value.copy(sessions = (listOf(session) + _saved.value.sessions).take(MAX_SESSIONS)))
 
-    fun deleteSession(id: String) = write(_saved.value.copy(sessions = _saved.value.sessions.filterNot { it.id == id }))
+    fun deleteSession(id: String) {
+        write(_saved.value.copy(sessions = _saved.value.sessions.filterNot { it.id == id }))
+        voiceDir(id).deleteRecursively()
+    }
 
     @Synchronized
     fun deleteAll() {
         file.delete()
         File(file.parentFile, file.name + ".tmp").delete()
+        voiceRoot.deleteRecursively()
         _saved.value = Saved()
+    }
+
+    private val voiceRoot get() = File(file.parentFile, "voice")
+    private fun voiceDir(id: String) = File(voiceRoot, id)
+
+    fun voice(id: String): VoiceSource? = voiceDir(id).takeIf { it.isDirectory }?.let(::SavedVoice)
+
+    /** Cuts every interviewer turn out of [source] into wavs, keeping voice for the newest [VOICE_KEPT] interviews only. */
+    fun saveVoice(id: String, turns: List<Turn>, source: VoiceSource) {
+        val dir = voiceDir(id)
+        turns.indices.filter { turns[it].speaker == Speaker.interviewer }.forEach { i ->
+            source.clip(turns, i)?.let { Wav.write(File(dir, "$i.wav"), it) }
+        }
+        val keep = _saved.value.sessions.take(VOICE_KEPT).map { it.id }.toSet() + id
+        voiceRoot.listFiles()?.filter { it.name !in keep }?.forEach { it.deleteRecursively() }
     }
 
     companion object {
         const val MAX_SESSIONS = 200
+        const val VOICE_KEPT = 30
 
         @Volatile private var instance: Store? = null
 

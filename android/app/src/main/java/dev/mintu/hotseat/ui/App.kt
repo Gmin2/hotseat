@@ -52,6 +52,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mintu.hotseat.live.LiveClient
 import dev.mintu.hotseat.live.ScriptedSession
 import dev.mintu.hotseat.live.LiveProbe
+import dev.mintu.hotseat.live.VoicePlayer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.data.SavedSession
@@ -95,6 +98,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
             scope = scope,
             newSession = { if (scripted) ScriptedSession(context, scope) else LiveClient(context, api, scope) },
             score = { round, seconds, turns -> api.report(round, seconds, turns) },
+            player = VoicePlayer(),
             onFinished = { done ->
                 val id = UUID.randomUUID().toString()
                 store.addSession(
@@ -107,6 +111,12 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                         report = done.report,
                     ),
                 )
+                done.voice?.let { tape ->
+                    scope.launch(Dispatchers.IO) {
+                        runCatching { store.saveVoice(id, done.turns, tape) }
+                        tape.close()
+                    }
+                }
                 // a finished interview goes straight to Sessions, where it sits on top, lit up
                 fresh = id
                 tab = 1
@@ -186,7 +196,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                         1 -> SessionsTab(
                             saved,
                             onOpenSaved = { session ->
-                                practice.openFinished(Finished(session.round, session.seconds, session.turns, session.report))
+                                practice.openFinished(Finished(session.round, session.seconds, session.turns, session.report, store.voice(session.id)))
                                 tab = 0
                             },
                             onOpenSample = { round ->
