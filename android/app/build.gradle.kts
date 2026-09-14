@@ -27,6 +27,11 @@ android {
                 "--add-opens=java.base/java.io=ALL-UNNAMED",
                 "--enable-native-access=ALL-UNNAMED",
             )
+            it.systemProperty("roborazzi.test.record", "true")
+            System.getenv("ROBOLECTRIC_DEPS")?.let { dir ->
+                it.systemProperty("robolectric.offline", "true")
+                it.systemProperty("robolectric.dependency.dir", dir)
+            }
         }
     }
 }
@@ -45,4 +50,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.espresso.core)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
 }
