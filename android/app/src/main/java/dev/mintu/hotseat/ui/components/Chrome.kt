@@ -1,5 +1,7 @@
 package dev.mintu.hotseat.ui.components
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
@@ -99,7 +101,14 @@ fun TabBar(selected: Int, onTab: (Int) -> Unit, modifier: Modifier = Modifier) {
 
 /** White sheet that springs up from the bottom over a dimmed screen. */
 @Composable
-fun BoxScope.Sheet(visible: Boolean, onDismiss: () -> Unit, fraction: Float = 0.86f, content: @Composable ColumnScope.() -> Unit) {
+fun BoxScope.Sheet(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    fraction: Float = 0.86f,
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BackHandler(enabled = visible, onBack = onDismiss)
     AnimatedVisibility(visible, enter = fadeIn(tween(220)), exit = fadeOut(tween(200))) {
         Box(
             Modifier
@@ -126,8 +135,13 @@ fun BoxScope.Sheet(visible: Boolean, onDismiss: () -> Unit, fraction: Float = 0.
             Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.width(36.dp).height(5.dp).clip(CircleShape).background(Color(0xFFD9D9DE)))
             }
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.gutter, vertical = 16.dp)) {
+            Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = Dimens.gutter, vertical = 16.dp)) {
                 content()
+            }
+            // the main action stays in reach however long the content gets
+            if (footer != null) {
+                Hairline()
+                Column(Modifier.fillMaxWidth().padding(horizontal = Dimens.gutter, vertical = 12.dp)) { footer() }
             }
         }
     }

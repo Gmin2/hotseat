@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import dev.mintu.hotseat.ui.components.ChipState
 import dev.mintu.hotseat.ui.components.PlayState
 import dev.mintu.hotseat.ui.components.RollingText
 import dev.mintu.hotseat.ui.components.EndButton
+import dev.mintu.hotseat.ui.components.LabelButton
 import dev.mintu.hotseat.ui.components.RoundButton
 import dev.mintu.hotseat.ui.components.Scrubber
 import dev.mintu.hotseat.ui.components.StatusChip
@@ -184,15 +186,18 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                     Phase.Connecting -> EndButton("Cancel", enabled = true, onClick = state::end)
                     Phase.Live -> EndButton("End", enabled = true, onClick = state::end)
                     Phase.Scoring -> EndButton("Scoring", enabled = false, onClick = {})
-                    else -> RoundButton(
-                        onClick = {
-                            when (phase) {
-                                Phase.Idle -> state.picking = true
-                                Phase.Report -> state.reviewing = true
-                                else -> state.retry()
-                            }
-                        },
-                    )
+                    Phase.Idle -> RoundButton(onClick = { state.picking = true })
+                    // after an interview, a way straight into the next one next to the report
+                    Phase.Report -> {
+                        LabelButton(if (chat) "New" else "New interview", onClick = state::newInterview)
+                        Spacer(Modifier.width(10.dp))
+                        RoundButton(onClick = { state.reviewing = true })
+                    }
+                    Phase.Failed -> {
+                        LabelButton(if (chat) "New" else "New interview", onClick = state::newInterview)
+                        Spacer(Modifier.width(10.dp))
+                        RoundButton(onClick = state::retry)
+                    }
                 }
             }
             BasicText(
@@ -228,7 +233,9 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                 level = if (phase == Phase.Live) maxOf(state.interviewerLevel, state.candidateLevel) else state.level,
                 onPlay = {
                     when (phase) {
-                        Phase.Idle, Phase.Failed -> if (state.demo) state.start() else onNeedMic()
+                        // pick the round first, the sheet starts the interview
+                        Phase.Idle -> state.picking = true
+                        Phase.Failed -> if (state.demo) state.start() else onNeedMic()
                         Phase.Live -> state.toggleMute()
                         Phase.Report -> state.togglePlayback()
                         else -> Unit
