@@ -1,22 +1,22 @@
 # brand
 
-the mark is a rounded lowercase **h** that is also a chair seen from the side: the tall stroke is the backrest, the arch is the seat and front leg. the red dot above the seat is someone about to take the hot seat, and doubles as the live recording light.
+the mascot is a round blue bird wearing a headset: your interviewer. drawn in a sticker style (thick ink outline, blue body, white face, blush cheeks, a red mic tip that doubles as the live light), based on the owl in the rewinder reference.
 
-`node tools/brand.mjs` generates everything from one set of numbers on a 24 grid:
+`node tools/mascot.mjs` generates everything from one geometry in a 512 box:
 
 | file | use |
 |---|---|
-| `docs/brand/mark.svg` | ink mark for light backgrounds |
-| `docs/brand/mark-white.svg` | white mark for the sky or dark backgrounds |
-| `docs/brand/icon.svg` | app tile, sky gradient with the white mark |
-| `docs/brand/favicon.svg` | same tile at 32px for the web |
-| `res/drawable/ic_launcher_*` + `mipmap-anydpi-v26/ic_launcher*` | adaptive launcher icon with a monochrome layer for themed icons |
-| `ui/brand/Brand.kt` | the path and dot for compose |
+| `docs/brand/mascot.svg` | the bird on its sticker |
+| `docs/brand/mascot-asleep.svg` | eyes shut, what the splash shows |
+| `docs/brand/mascot-bare.svg` | no sticker, for light backgrounds |
+| `docs/brand/icon.svg`, `favicon.svg` | app tile and web favicon |
+| `res/drawable/ic_launcher_*`, `mipmap-anydpi-v26/ic_launcher*` | adaptive launcher icon, with a silhouette layer for themed icons |
+| `res/drawable/ic_splash.xml` | the sleeping bird on its sticker for the system splash |
+| `ui/brand/MascotArt.kt` | the paths, pivots and eye positions for compose |
 
-where it shows up in the app:
-- launcher icon
-- system splash (`Theme.Hotseat.Starting`), no fade out
-- `Intro`: starts from the splash mark, the dot hops and lands, the name types, then the screen lifts away
-- status chip: the dot breathes during a live interview, tapping replays the draw in
+in the app, `Mascot` draws it from that data so the eyes, wings, mic and hop can move:
+- **launch**: the system splash shows the bird asleep, `Intro` takes over in the exact same spot and plays the owl's beats. half blink at 600ms, shut at 830, wakes with a hop and two flaps at 1050, glances left at 1450 and right at 1900, settles at 2350, the name types in and the screen lifts away at 3400
+- **chip**: `IdleMascot` blinks on its own every few seconds, tapping makes it hop and flap, during a live interview its mic glows
+- **chat**: the same bird is the interviewer's avatar, its mic glows while the interviewer is speaking
 
-colours: sky `#6793DF` to `#4989E9`, white mark, red `#E03143`.
+colours: blue `#3B7BEF`, ink `#141210`, red `#E03143`, beak `#FFB23E`, paper `#E6EBFF`, splash sky `#5A8EE4`.

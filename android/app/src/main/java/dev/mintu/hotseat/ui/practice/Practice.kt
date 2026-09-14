@@ -96,9 +96,10 @@ class Practice(
     val line: Turn?
         get() = if (phase == Phase.Report || replaying) turns.lastOrNull { it.startMs <= elapsed } ?: turns.firstOrNull() else turns.lastOrNull()
 
+    /** Which question the interviewer is on: every interviewer turn that asks something counts, the greeting is question 1. */
     val question: Int
         get() = turns.filter { it.startMs <= (if (phase == Phase.Live) Long.MAX_VALUE else elapsed) }
-            .count { it.speaker == Speaker.interviewer && it.text.trim().endsWith("?") }.coerceAtLeast(1)
+            .count { it.speaker == Speaker.interviewer && asksSomething(it.text) }.coerceAtLeast(1)
 
     val progress: Float
         get() = when (phase) {
@@ -370,3 +371,8 @@ class Practice(
         Turn(if (it.speaker == ScriptSpeaker.You) Speaker.candidate else Speaker.interviewer, it.text, it.at, it.at + it.text.length * 1000L / 14)
     }
 }
+
+private val ASKING = Regex("""\b(tell me|walk me|how|what|why|when|which|where|describe|explain|design|give me|talk me)\b""", RegexOption.IGNORE_CASE)
+
+// transcripts rarely end in a question mark, so look for question words too
+internal fun asksSomething(text: String) = text.contains('?') || ASKING.containsMatchIn(text)
