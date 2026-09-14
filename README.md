@@ -1,12 +1,17 @@
-# Hotseat
-
-practice job interviews out loud. a voice interviewer asks, listens and follows up, then you get a report on every answer.
-
 <p align="center">
-  <img src="media/demo.gif" width="320" alt="hotseat demo">
+  <img src="media/icon.png" width="96" alt="hotseat icon">
 </p>
 
-<p align="center"><a href="media/demo.mp4">watch the sharper mp4</a></p>
+<h1 align="center">Hotseat</h1>
+
+<p align="center">practice job interviews out loud. a voice interviewer asks, listens and follows up, then you get a report on every answer.</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="media/demo-dark.gif">
+    <img src="media/demo-light.gif" width="380" alt="hotseat running on a phone">
+  </picture>
+</p>
 
 - pick a round: behavioral, android technical, system design or one built from a job post
 - talk it through, the interviewer runs a real interview pattern and digs into what you said
