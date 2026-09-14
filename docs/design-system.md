@@ -134,16 +134,17 @@ the tab bar follows the sky with a short lag. overcast bar is `#313F53` to `#434
 
 `SpecimenTest` renders a static day and night screen from these tokens with Roborazzi into `android/app/build/specimen/`. put it next to a frame from the clip to compare. current renders are in `docs/design/`.
 
-not in the specimen yet: the cloud sky (needs a shader), icons (the nucleo library has no filled glyphs, trophy, play or pause), shadows.
+the live app goes further than the specimen: `SkyBackdrop` draws drifting cloud puffs, stars at night and the interviewer orb, icons are nucleo micro-bold drawn by `InkIcon` with a tap motion each. screenshots of every screen are in `docs/design/mock/`.
 
 ## mapping to hotseat
 
 | reference | hotseat |
 |---|---|
-| sky state (day, dusk, night, overcast) | interview state: listening, interviewer speaking, pushback, wrap up |
+| sky state (day, dusk, night, overcast) | interviewer speaking is day, your answer is night, a pushback flashes dusk then sits overcast |
+| sun | the interviewer orb, swells while it talks |
 | typed headline | live interviewer transcript |
 | big number | elapsed time live, score on the report |
 | meta line 1 | role · round |
 | meta line 2 | question · pace · fillers |
 | scrubber | mic level live, replay timeline after |
-| tabs Nearby, Cities, Rankings, More | Practice, Sessions, Progress, More |
+| tabs Nearby, Cities, Rankings, More | Practice, Sessions, Progress, You |
