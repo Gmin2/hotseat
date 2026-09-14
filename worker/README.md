@@ -52,8 +52,6 @@ npx wrangler secret put APP_KEY
 npx wrangler deploy
 ```
 
-## deploy
-
 deployed at `https://hotseat-worker.mintugogoi567.workers.dev`. `OPENAI_API_KEY` and `APP_KEY` are worker secrets, check them with `npx wrangler secret list`. to change one run `npx wrangler secret put APP_KEY`, then `npx wrangler deploy`.
 
 the app reads the url and key from `android/local.properties`, which stays out of git:
