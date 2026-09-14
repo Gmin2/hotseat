@@ -7,9 +7,13 @@
     "deploy": "wrangler deploy",
     "types": "wrangler types",
     "call": "node scripts/call.mjs",
-    "test": "node --test test/"
+    "test": "node --test test/",
+    "check": "tsc -p . && node --test test/"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260914.1",
+    "@types/node": "^26.5.1",
+    "typescript": "^7.0.2",
     "werift": "^0.24.4",
     "wrangler": "4.131.2"
   }
