@@ -14,7 +14,7 @@ class MainActivityTest {
     val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun launchesAndShowsTitle() {
-        rule.onNodeWithText("hotseat").assertIsDisplayed()
+    fun launchesIntoHeroScreen() {
+        rule.onNodeWithText("Practice").assertIsDisplayed()
     }
 }
