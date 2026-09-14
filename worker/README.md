@@ -51,3 +51,16 @@ npx wrangler secret put OPENAI_API_KEY
 npx wrangler secret put APP_KEY
 npx wrangler deploy
 ```
+
+## deploy
+
+deployed at `https://hotseat-worker.mintugogoi567.workers.dev`. `OPENAI_API_KEY` and `APP_KEY` are worker secrets, check them with `npx wrangler secret list`. to change one run `npx wrangler secret put APP_KEY`, then `npx wrangler deploy`.
+
+the app reads the url and key from `android/local.properties`, which stays out of git:
+
+```
+hotseat.workerUrl=https://hotseat-worker.mintugogoi567.workers.dev
+hotseat.appKey=<the APP_KEY secret>
+```
+
+drop those two lines to go back to wrangler dev through `adb reverse`, or pass `-Photseat.workerUrl=http://127.0.0.1:8790 -Photseat.appKey=dev` for one build. the app key ships inside the apk, so it only keeps casual traffic out, the openai budget limit is the real cap.
