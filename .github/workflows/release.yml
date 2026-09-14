@@ -25,7 +25,11 @@ jobs:
           distribution: temurin
           java-version: "25"
 
-      - uses: android-actions/setup-android@v3
+      # the runner already has an android sdk, accept the licenses so gradle can pull api 37 and its build tools
+      - name: android sdk
+        run: |
+          sdkmanager=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$sdkmanager" --licenses > /dev/null
 
       - uses: gradle/actions/setup-gradle@v4
 
