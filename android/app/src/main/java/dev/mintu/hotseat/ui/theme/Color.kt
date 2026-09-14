@@ -16,6 +16,9 @@ data class Sky(
         val Day = Sky(Color(0xFF6793DF), Color(0xFF4989E9), Color(0xFFA5CAFA), Color(0xFFB3D3F8), Color(0xFFFFFFFF))
         val Dusk = Sky(Color(0xFF834C5C), Color(0xFFA7372F), Color(0xFFED945D), Color(0xFFE68555), Color(0xFFBCB8B8))
         val Night = Sky(Color(0xFF383B43), Color(0xFF0E121D), Color(0xFF1A1E2E), Color(0xFF11131D), Color(0xFF040810))
+        // light skies for the conversation, so the chat reads on a calm page
+        val Morning = Sky(Color(0xFF9DBDF2), Color(0xFFB7CFF6), Color(0xFFDCE8FB), Color(0xFFEDF3FD), Color(0xFFFFFFFF))
+        val Mist = Sky(Color(0xFFB9B4EE), Color(0xFFCFCBF5), Color(0xFFE6E4FB), Color(0xFFF2F1FD), Color(0xFFFFFFFF))
         val Overcast = Sky(Color(0xFF7D8490), Color(0xFF747C8A), Color(0xFF616A7A), Color(0xFF5B6474), Color(0xFF4A5360))
     }
 }

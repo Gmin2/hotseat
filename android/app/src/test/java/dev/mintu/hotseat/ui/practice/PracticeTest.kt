@@ -81,6 +81,7 @@ class PracticeTest {
         assertEquals(Phase.Connecting, p.phase)
         runCurrent()
         assertEquals(Phase.Live, p.phase)
+        assertEquals(Mood.Morning, p.mood)
         val s = h.sessions.single()
         assertEquals(InterviewSetup("technical", "hard", "sharp", Mock.role, 15, null), s.setup)
         assertEquals(60_000L, p.limitMs)
@@ -97,7 +98,7 @@ class PracticeTest {
         s.candidateLevel.value = 0.4f
         advanceTimeBy(9_100)
         runCurrent()
-        assertEquals(Mood.Night, p.mood)
+        assertEquals(Mood.Mist, p.mood)
         assertEquals(2, p.turns.size)
 
         p.end()
@@ -111,6 +112,7 @@ class PracticeTest {
         assertEquals(1, h.finished.size)
         assertEquals(0f, p.level, 0f)
         assertEquals(p.totalMs, p.elapsed)
+        assertEquals(Mood.Day, p.mood)
     }
 
     @Test

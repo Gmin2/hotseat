@@ -30,6 +30,8 @@ enum class Mood(val sky: Sky, val ms: Int) {
     Dusk(Sky.Dusk, Motion.SKY_TO_NIGHT_MS),
     Night(Sky.Night, Motion.SKY_TO_NIGHT_MS),
     Overcast(Sky.Overcast, Motion.SKY_TO_OVERCAST_MS),
+    Morning(Sky.Morning, Motion.SKY_TO_DAY_MS),
+    Mist(Sky.Mist, Motion.SKY_TO_DAY_MS),
 }
 
 // soft cloud puffs as fractions of the screen: x, y, radius, drift speed
@@ -90,7 +92,8 @@ fun SkyBackdrop(mood: Mood, level: Float, modifier: Modifier = Modifier, orb: Of
         val wobble = if (voice > 0.01f) sin(shimmer * 2 * PI).toFloat() * 0.03f * voice else 0f
         val radius = size.width * (0.2f + 0.02f * breath + 0.12f * voice + wobble)
         val c = Offset(orb.x * size.width, orb.y * size.height)
-        val glow = lerp(Color.White, Color(0xFFF3EAC8), night)
+        // on the light chat skies a white orb vanishes, so it takes a faint blue instead
+        val glow = if (mood == Mood.Morning || mood == Mood.Mist) Color(0xFFBFD3F7) else lerp(Color.White, Color(0xFFF3EAC8), night)
         drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.55f), 0.45f to glow.copy(alpha = 0.18f), 1f to Color.Transparent, center = c, radius = radius * 2.2f), radius * 2.2f, c)
         drawCircle(Brush.radialGradient(0f to glow.copy(alpha = 0.95f), 0.6f to glow.copy(alpha = 0.7f), 1f to glow.copy(alpha = 0f), center = c, radius = radius * 0.55f), radius * 0.55f, c)
     }
