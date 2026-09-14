@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+
+fun hotseat(name: String, fallback: String): String =
+    providers.gradleProperty("hotseat.$name").orNull ?: localProperties.getProperty("hotseat.$name") ?: fallback
 
 android {
     namespace = "dev.mintu.hotseat"
@@ -15,9 +24,10 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // debug talks to wrangler dev on the mac through adb reverse, override in gradle.properties or with -P
-        buildConfigField("String", "WORKER_URL", "\"${providers.gradleProperty("hotseat.workerUrl").getOrElse("http://127.0.0.1:8790")}\"")
-        buildConfigField("String", "APP_KEY", "\"${providers.gradleProperty("hotseat.appKey").getOrElse("dev")}\"")
+        // the deployed worker and its key live in local.properties (not committed), -P overrides them,
+        // and with neither the app talks to wrangler dev on the mac through adb reverse
+        buildConfigField("String", "WORKER_URL", "\"${hotseat("workerUrl", "http://127.0.0.1:8790")}\"")
+        buildConfigField("String", "APP_KEY", "\"${hotseat("appKey", "dev")}\"")
     }
 
     buildFeatures {
