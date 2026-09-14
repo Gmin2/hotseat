@@ -39,18 +39,29 @@ import kotlin.math.sqrt
  * One GPT-Live interview over WebRTC. The mic goes up as an audio track, the interviewer comes back as one,
  * and JSON events ride the oai-events data channel. The worker swaps our SDP offer for OpenAI's answer.
  */
-class LiveClient(context: Context, private val api: WorkerApi, private val scope: CoroutineScope) {
+/** What the practice screen needs from a live interview. LiveClient is the real one, tests use a fake. */
+interface LiveSession {
+    val events: SharedFlow<LiveEvent>
+    val interviewerLevel: StateFlow<Float>
+    val candidateLevel: StateFlow<Float>
+    suspend fun start(setup: InterviewSetup): SessionResponse
+    suspend fun stop(): LiveEvent.Closed?
+    fun setMuted(muted: Boolean)
+    fun release()
+}
+
+class LiveClient(context: Context, private val api: WorkerApi, private val scope: CoroutineScope) : LiveSession {
     private val app = context.applicationContext
     private val audio = app.getSystemService(AudioManager::class.java)
 
     private val _events = MutableSharedFlow<LiveEvent>(replay = 0, extraBufferCapacity = 512)
-    val events: SharedFlow<LiveEvent> = _events
+    override val events: SharedFlow<LiveEvent> = _events
 
     // 0..1, how loud each side is right now, drives the orb and ticks
     private val _interviewerLevel = MutableStateFlow(0f)
-    val interviewerLevel: StateFlow<Float> = _interviewerLevel
+    override val interviewerLevel: StateFlow<Float> = _interviewerLevel
     private val _candidateLevel = MutableStateFlow(0f)
-    val candidateLevel: StateFlow<Float> = _candidateLevel
+    override val candidateLevel: StateFlow<Float> = _candidateLevel
 
     private var adm: JavaAudioDeviceModule? = null
     private var factory: PeerConnectionFactory? = null
@@ -64,7 +75,7 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
     var session: SessionResponse? = null
         private set
 
-    suspend fun start(setup: InterviewSetup): SessionResponse {
+    override suspend fun start(setup: InterviewSetup): SessionResponse {
         initWebRtc(app)
         closed = CompletableDeferred()
         routeToSpeaker(true)
@@ -146,12 +157,12 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         return response
     }
 
-    fun setMuted(muted: Boolean) {
+    override fun setMuted(muted: Boolean) {
         mic?.setEnabled(!muted)
     }
 
     /** Asks GPT-Live to finish, waits for its final usage, then tears everything down. */
-    suspend fun stop(): LiveEvent.Closed? {
+    override suspend fun stop(): LiveEvent.Closed? {
         val dc = channel
         val result = if (dc != null && dc.state() == DataChannel.State.OPEN) {
             send("""{"type":"session.close"}""")
@@ -161,7 +172,7 @@ class LiveClient(context: Context, private val api: WorkerApi, private val scope
         return result
     }
 
-    fun release() {
+    override fun release() {
         stats?.cancel()
         channel?.unregisterObserver()
         channel?.close()

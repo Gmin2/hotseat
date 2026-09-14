@@ -21,6 +21,6 @@ class MainActivity : ComponentActivity() {
         if (BuildConfig.DEBUG && intent.hasExtra("probe")) {
             LiveProbe.run(this, lifecycleScope, intent.getIntExtra("probe", 20), intent.getStringExtra("round") ?: "behavioral")
         }
-        setContent { App(startTab = tab, intro = intro) }
+        setContent { App(startTab = tab, intro = intro, demo = intent.getBooleanExtra("demo", false)) }
     }
 }
