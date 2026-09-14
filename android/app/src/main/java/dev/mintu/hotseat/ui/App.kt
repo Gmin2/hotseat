@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Mock
+import dev.mintu.hotseat.ui.brand.Intro
 import dev.mintu.hotseat.ui.components.Mood
 import dev.mintu.hotseat.ui.components.SkyBackdrop
 import dev.mintu.hotseat.ui.components.TabBar
@@ -50,8 +52,9 @@ import dev.mintu.hotseat.ui.theme.HotseatTheme
 import android.graphics.Color as AndroidColor
 
 @Composable
-fun App(startTab: Int = 0) {
+fun App(startTab: Int = 0, intro: Boolean = false) {
     var tab by remember { mutableIntStateOf(startTab) }
+    var showIntro by remember { mutableStateOf(intro) }
     val practice = rememberPractice()
 
     val mood = if (tab == 0) practice.mood else Mood.Day
@@ -62,8 +65,8 @@ fun App(startTab: Int = 0) {
     val floor by animateColorAsState(if (tab == 0) mood.sky.floor else Color.White, tween(mood.ms), label = "scrim floor")
 
     val activity = LocalActivity.current as? ComponentActivity
-    LaunchedEffect(dark) {
-        val style = if (dark) SystemBarStyle.dark(AndroidColor.TRANSPARENT) else SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+    LaunchedEffect(dark, showIntro) {
+        val style = if (dark || showIntro) SystemBarStyle.dark(AndroidColor.TRANSPARENT) else SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
         activity?.enableEdgeToEdge(style, style)
     }
 
@@ -112,6 +115,8 @@ fun App(startTab: Int = 0) {
 
             RoundSheet(practice)
             ReportSheet(practice)
+
+            if (showIntro) Intro(onFinished = { showIntro = false })
         }
     }
 }

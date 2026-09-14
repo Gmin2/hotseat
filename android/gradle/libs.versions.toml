@@ -3,6 +3,7 @@ agp = "9.4.0"
 kotlin = "2.4.20"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
+splashscreen = "1.2.0"
 junit = "4.13.2"
 robolectric = "4.17"
 espresso = "3.7.0"
@@ -22,6 +23,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
