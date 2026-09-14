@@ -13,6 +13,15 @@ every POST needs `x-hotseat-key` (the `APP_KEY` secret) and should send `x-devic
 ```
 returns `201 { id, sdp, greeting, maxSeconds }`. apply `sdp` as the answer, and once the `oai-events` data channel opens send
 `{ "type": "session.commentary.append", "delegation_id": null, "content": greeting }` so the interviewer speaks first. commentary is what makes it reliable, instructions.append often left the interviewer silent until the candidate spoke.
+
+every round follows a playbook in `src/prompt.ts`, the same order a real loop uses:
+
+- behavioral: intro, ownership, conflict, failure, impact, close
+- technical: the candidate picks compose, coroutines, architecture or performance, then fundamentals, an applied feature, a debugging case and a tradeoff
+- design: the candidate picks file storage, a feed like X, video streaming or chat, then requirements, client architecture, offline and sync, a deep dive for that app, failure cases and metrics
+- job: motivation, two skills from the post, a scenario from it, gaps, close
+
+the greeting asks the choice question, so the first thing the candidate does is pick.
 the app should close the session at `maxSeconds`.
 
 **`POST /report`** scores a finished interview with `gpt-5.6-luna`

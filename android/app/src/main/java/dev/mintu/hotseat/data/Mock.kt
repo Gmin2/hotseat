@@ -48,7 +48,7 @@ object Mock {
     const val questions = 4
 
     private val behavioral = listOf(
-        Line(Speaker.Interviewer, "Hey, thanks for jumping on. Tell me about a project you are really proud of.", 0, 1),
+        Line(Speaker.Interviewer, "Hi, thanks for joining. Tell me a little about yourself and a project you are proud of.", 0, 1),
         Line(Speaker.You, "At ecashlabs I built the mobile wallet in Flutter, from the first screen to the store release.", 7_000, 1),
         Line(Speaker.Interviewer, "Nice. Which part of that was actually yours, not the team's?", 17_000, 1, pushback = true),
         Line(Speaker.You, "The offline sync. I designed the queue that replays payments when the network comes back.", 23_000, 1),
@@ -62,7 +62,7 @@ object Mock {
     )
 
     private val technical = listOf(
-        Line(Speaker.Interviewer, "Let's start simple. What actually happens to a ViewModel on rotation?", 0, 1),
+        Line(Speaker.Interviewer, "You picked architecture, so let's start there. What happens to a ViewModel on rotation?", 0, 1),
         Line(Speaker.You, "It survives. The activity is recreated but the ViewModelStore is kept, so state stays put.", 7_000, 1),
         Line(Speaker.Interviewer, "And when the process dies in the background?", 17_000, 1, pushback = true),
         Line(Speaker.You, "Then it is gone, so anything important goes through SavedStateHandle or gets reloaded.", 23_000, 1),
@@ -76,7 +76,7 @@ object Mock {
     )
 
     private val design = listOf(
-        Line(Speaker.Interviewer, "Design the offline first chat screen of a messaging app. Where do you start?", 0, 1),
+        Line(Speaker.Interviewer, "You picked the chat app. Where do you start with an offline first chat screen?", 0, 1),
         Line(Speaker.You, "With the source of truth. A local database the UI observes, and the network only ever writes into it.", 8_000, 1),
         Line(Speaker.Interviewer, "What happens to a message sent with no signal?", 18_000, 1, pushback = true),
         Line(Speaker.You, "It lands in an outbox table as pending, WorkManager retries it with backoff once we are online.", 24_000, 1),
