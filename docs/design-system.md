@@ -147,4 +147,4 @@ the live app goes further than the specimen: `SkyBackdrop` draws drifting cloud 
 | meta line 1 | role · round |
 | meta line 2 | question · pace · fillers |
 | scrubber | mic level live, replay timeline after |
-| tabs Nearby, Cities, Rankings, More | Practice, Sessions, Progress, You |
+| tabs Nearby, Cities, Rankings, More | Practice, Sessions, Progress, profile and settings in a panel from the top right button |

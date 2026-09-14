@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,10 @@ import dev.mintu.hotseat.ui.brand.IdleMascot
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 import dev.mintu.hotseat.ui.theme.loop
 
+// your bubbles take the mascot's blue, the interviewer's sit on a pale blue grey inside the white card
+private val YouBlue = Color(0xFF2F6CE5)
+private val InterviewerFill = Color(0xFFF1F5FC)
+
 /** What the chat shows at the bottom while nobody's words have landed yet. */
 enum class Typing { None, Interviewer, Candidate }
 
@@ -64,9 +69,17 @@ fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modi
         if (count > 0) list.animateScrollToItem(count - 1, scrollOffset = Int.MAX_VALUE / 2)
     }
 
-    LazyColumn(
+    Box(
         modifier
-            // the oldest bubbles fade out under the headline
+            .shadow(18.dp, RoundedCornerShape(28.dp), ambientColor = Color(0x1A3B5BA8), spotColor = Color(0x1A3B5BA8))
+            .clip(RoundedCornerShape(28.dp))
+            .background(Color.White.copy(alpha = 0.78f))
+            .border(1.dp, Color.White, RoundedCornerShape(28.dp)),
+    ) {
+    LazyColumn(
+        Modifier
+            .fillMaxSize()
+            // the oldest bubbles fade out at the top of the card
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
             .drawWithContent {
                 drawContent()
@@ -74,7 +87,7 @@ fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modi
             },
         state = list,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 8.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 28.dp, bottom = 12.dp),
     ) {
         itemsIndexed(turns, key = { i, t -> "${t.speaker}-${t.startMs}-$i" }) { i, turn ->
             val newest = i == turns.lastIndex
@@ -89,11 +102,12 @@ fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modi
             }
         }
     }
+    }
 }
 
 @Composable
 private fun bubbleText(speaker: Speaker) = HotseatTheme.type.meta.copy(
-    color = if (speaker == Speaker.candidate) HotseatTheme.palette.pillText else Color(0xFF141210),
+    color = if (speaker == Speaker.candidate) Color.White else Color(0xFF141210),
     lineHeight = HotseatTheme.type.meta.lineHeight * 1.1f,
 )
 
@@ -118,16 +132,16 @@ private fun Bubble(speaker: Speaker, level: Float, content: @Composable () -> Un
         verticalAlignment = Alignment.Bottom,
     ) {
         if (!mine) {
-            IdleMascot(34.dp, mic = level)
+            IdleMascot(40.dp, mic = level)
             Spacer(Modifier.size(6.dp))
         }
         Box(
             Modifier
                 .widthIn(max = 280.dp)
-                .shadow(if (mine) 0.dp else 10.dp, bubbleShape(mine), ambientColor = Color(0x223B5BA8), spotColor = Color(0x223B5BA8))
+                .shadow(if (mine) 8.dp else 0.dp, bubbleShape(mine), ambientColor = Color(0x552F6CE5), spotColor = Color(0x552F6CE5))
                 .clip(bubbleShape(mine))
-                .background(if (mine) p.pill else Color.White)
-                .then(if (mine) Modifier else Modifier.border(1.dp, Color(0x14000000), bubbleShape(mine)))
+                .background(if (mine) YouBlue else InterviewerFill)
+                .then(if (mine) Modifier else Modifier.border(1.dp, Color(0x0F1B3A7A), bubbleShape(mine)))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) { content() }
     }

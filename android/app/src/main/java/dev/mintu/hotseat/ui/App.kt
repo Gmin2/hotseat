@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -55,7 +57,9 @@ import dev.mintu.hotseat.data.SavedSession
 import dev.mintu.hotseat.data.Store
 import dev.mintu.hotseat.ui.practice.Finished
 import dev.mintu.hotseat.ui.practice.Phase
-import dev.mintu.hotseat.ui.tabs.DeleteSheet
+import dev.mintu.hotseat.ui.profile.DeleteSheet
+import dev.mintu.hotseat.ui.profile.ProfileButton
+import dev.mintu.hotseat.ui.profile.ProfilePanel
 import java.util.UUID
 import dev.mintu.hotseat.ui.brand.Intro
 import dev.mintu.hotseat.ui.onboarding.Onboarding
@@ -68,7 +72,6 @@ import dev.mintu.hotseat.ui.practice.ReportSheet
 import dev.mintu.hotseat.ui.practice.RoundSheet
 import dev.mintu.hotseat.ui.tabs.ProgressTab
 import dev.mintu.hotseat.ui.tabs.SessionsTab
-import dev.mintu.hotseat.ui.tabs.YouTab
 import dev.mintu.hotseat.ui.theme.Dimens
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 import dev.mintu.hotseat.ui.theme.LocalReduceMotion
@@ -103,6 +106,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
     }
     val saved by store.saved.collectAsState()
     var confirmDelete by remember { mutableStateOf(false) }
+    var profileOpen by remember { mutableStateOf(false) }
 
     // the You tab settings are the defaults for the next interview
     LaunchedEffect(saved.profile) {
@@ -173,8 +177,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                                 tab = 0
                             },
                         )
-                        2 -> ProgressTab(saved)
-                        else -> YouTab(saved, onProfile = store::updateProfile, onDeleteAll = { confirmDelete = true })
+                        else -> ProgressTab(saved)
                     }
                 }
 
@@ -199,7 +202,21 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                     Spacer(Modifier.height(Dimens.tabBarBottom))
                 }
 
+                // same corner on every tab, lines up with the status chip on the left
+                ProfileButton(
+                    saved.profile.name,
+                    onClick = { profileOpen = true },
+                    modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 12.dp, end = Dimens.chipInset),
+                )
+
                 RoundSheet(practice, onStart = startWithMic)
+                ProfilePanel(
+                    visible = profileOpen,
+                    saved = saved,
+                    onClose = { profileOpen = false },
+                    onProfile = store::updateProfile,
+                    onDeleteAll = { confirmDelete = true },
+                )
                 DeleteSheet(
                     visible = confirmDelete,
                     interviews = saved.sessions.size,
@@ -209,6 +226,7 @@ fun App(startTab: Int = 0, intro: Boolean = false, demo: Boolean = false, onboar
                         practice.backToIdle()
                         store.deleteAll()
                         confirmDelete = false
+                        profileOpen = false
                         tab = 0
                     },
                 )
