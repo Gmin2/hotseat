@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import dev.mintu.hotseat.data.Store
+import dev.mintu.hotseat.ui.components.TabBar
 import dev.mintu.hotseat.ui.theme.HotseatTheme
 import dev.mintu.hotseat.ui.theme.LocalReduceMotion
 import org.junit.Assert.assertEquals
@@ -105,5 +106,19 @@ class ProfilePanelTest {
         rule.onNodeWithContentDescription("Close profile").performClick()
         rule.waitForIdle()
         assertFalse(open)
+    }
+
+    @Test
+    fun tabBarHasFourTabsAndReportsTheOneTapped() {
+        val taps = mutableListOf<Int>()
+        rule.setContent {
+            CompositionLocalProvider(LocalReduceMotion provides true) {
+                HotseatTheme { TabBar(0, { taps += it }) }
+            }
+        }
+        listOf("Practice", "Sessions", "Progress", "You").forEach { rule.onNodeWithText(it).assertExists() }
+        rule.onNodeWithText("You").performClick()
+        rule.onNodeWithText("Sessions").performClick()
+        assertEquals(listOf(3, 1), taps)
     }
 }

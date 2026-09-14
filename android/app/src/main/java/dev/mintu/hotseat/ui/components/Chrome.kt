@@ -53,6 +53,7 @@ val tabItems = listOf(
     TabItem("Practice", InkIcons.Practice, InkMotion.Bob),
     TabItem("Sessions", InkIcons.Sessions, InkMotion.Spin),
     TabItem("Progress", InkIcons.Progress, InkMotion.Draw),
+    TabItem("You", InkIcons.You, InkMotion.Wiggle),
 )
 
 @Composable
@@ -61,7 +62,7 @@ fun TabBar(selected: Int, onTab: (Int) -> Unit, modifier: Modifier = Modifier) {
     val t = HotseatTheme.type
     val bar by animateColorAsState(p.tabBar, tween(500), label = "bar")
     val activeFill by animateColorAsState(p.tabActive, tween(500), label = "active")
-    val pulses = remember { mutableStateListOf(0, 0, 0) }
+    val pulses = remember { mutableStateListOf(0, 0, 0, 0) }
     Row(
         modifier
             .padding(horizontal = Dimens.tabBarInset)
