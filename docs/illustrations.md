@@ -16,4 +16,17 @@ REUSE=1 node tools/illustrate.mjs <name> x   # redo trim and export from the las
 
 the interviewer itself is not an image, it is the glowing orb drawn in `SkyBackdrop`, it swells with the voice level.
 
+## isometric scenes
+
+computed, not generated. `node tools/iso-art.mjs` builds each scene from boxes, flat polygons and top plane ellipses in true 30 degree isometric (ellipse ry/rx 0.577), writes `docs/art/<scene>.svg` and `IsoScenes.kt`. `IsoArt` draws them in compose part by part, so each named part can float or scale. scaling a part vertically around its anchor is exact in isometric, it only stretches height.
+
+style: one hue at three values keyed to face orientation (top lightest), near black outlines, a red accent.
+
+| scene | tab | what it is | motion |
+|---|---|---|---|
+| hotseat | Practice | chair on a red hot seat ring, voice bars on a table trailing up into a speech bubble | bars jump with the interviewer voice, bubble floats, chair squashes on tap |
+| sessions | Sessions | stack of recorded session cards, play mark, record dot, waveform | cards drop in, waveform breathes |
+| progress | Progress | rising steps with a red flag on top | steps grow one after another, flag sways |
+| you | You | profile badge with avatar and a red verified dot | badge floats, dot pops |
+
 each high quality 1024 image takes about 40s.

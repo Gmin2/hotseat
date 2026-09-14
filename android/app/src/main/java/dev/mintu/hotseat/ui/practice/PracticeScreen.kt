@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.data.Line
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.data.Speaker
+import dev.mintu.hotseat.ui.art.HotseatScene
 import dev.mintu.hotseat.ui.components.ChipState
 import dev.mintu.hotseat.ui.components.Mood
 import dev.mintu.hotseat.ui.components.PlayState
@@ -143,6 +144,11 @@ fun PracticeScreen(state: Practice, modifier: Modifier = Modifier) {
     val line = state.line
 
     Box(modifier.fillMaxSize()) {
+        HotseatScene(
+            level = state.level,
+            modifier = Modifier.align(Alignment.Center).offset(y = 26.dp).fillMaxWidth(0.8f),
+        )
+
         Column(Modifier.statusBarsPadding().padding(top = 12.dp)) {
             StatusChip(
                 when (state.phase) {

@@ -48,6 +48,9 @@ import androidx.compose.ui.unit.dp
 import dev.mintu.hotseat.R
 import dev.mintu.hotseat.data.Mock
 import dev.mintu.hotseat.data.Session
+import dev.mintu.hotseat.ui.art.IsoScene
+import dev.mintu.hotseat.ui.art.IsoScenes
+import dev.mintu.hotseat.ui.art.TabScene
 import dev.mintu.hotseat.ui.components.Hairline
 import dev.mintu.hotseat.ui.components.RollingText
 import dev.mintu.hotseat.ui.components.Segmented
@@ -64,7 +67,7 @@ import kotlinx.coroutines.delay
 
 /** Shared layout for the non practice tabs: title over the sky, a white card that holds the content. */
 @Composable
-private fun TabPage(kicker: String, title: String, number: String, caption: String, content: @Composable ColumnScope.() -> Unit) {
+private fun TabPage(kicker: String, title: String, number: String, caption: String, art: IsoScene, content: @Composable ColumnScope.() -> Unit) {
     val p = HotseatTheme.palette
     val t = HotseatTheme.type
     Column(
@@ -77,7 +80,7 @@ private fun TabPage(kicker: String, title: String, number: String, caption: Stri
         StatusChip(ChipState.Ready, Modifier.padding(start = Dimens.chipInset))
         BasicText(kicker.uppercase(), Modifier.padding(start = Dimens.gutter, top = 24.dp), style = t.tabLabel.copy(color = p.text.copy(alpha = 0.55f)))
         BasicText(title, Modifier.padding(start = Dimens.gutter, end = Dimens.gutter, top = 6.dp), style = t.headline.copy(color = p.text))
-        Spacer(Modifier.height(96.dp))
+        TabScene(art, Modifier.padding(horizontal = 56.dp, vertical = 12.dp).fillMaxWidth())
         RollingText(number, t.display.copy(color = p.display), Modifier.padding(start = Dimens.gutter))
         BasicText(caption, Modifier.padding(start = Dimens.gutter, top = 2.dp), style = t.meta.copy(color = p.meta))
         Spacer(Modifier.height(20.dp))
@@ -101,6 +104,7 @@ fun SessionsTab(onOpen: (Session) -> Unit) {
         title = "Every run, replayable.",
         number = Mock.sessions.size.toString(),
         caption = dots("interviews this month", "${Mock.minutesPracticed} min"),
+        art = IsoScenes.Sessions,
     ) {
         Mock.sessions.forEachIndexed { i, s ->
             if (i > 0) Hairline()
@@ -167,6 +171,7 @@ fun ProgressTab() {
         title = "You are getting sharper.",
         number = Mock.scores.last().toString(),
         caption = dots("latest score", "up ${Mock.scores.last() - Mock.scores.first()} since Sep 1"),
+        art = IsoScenes.Progress,
     ) {
         Header("Last 12 interviews")
         ScoreTicks(Mock.scores)
@@ -259,6 +264,7 @@ fun YouTab() {
         title = "Mintu, Android engineer.",
         number = "${Mock.sessions.size * 3}",
         caption = dots("questions answered", "Bengaluru"),
+        art = IsoScenes.You,
     ) {
         Header("Interviewer")
         SettingRow(InkIcons.Interviewer, "Voice", "Marin")
