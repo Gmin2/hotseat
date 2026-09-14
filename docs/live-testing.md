@@ -42,3 +42,9 @@ timing 3580ms first interviewer words
 ```
 
 two things made the first question slow before. the greeting went out as `session.instructions.append`, which in node tests only got the interviewer to speak first in about one session in three, the rest stayed silent until the candidate talked. `session.commentary.append` spoke every time (7 of 7), about 0.9s after session.started. and the app waited up to 5s for ICE gathering against a STUN server, now it has no STUN (OpenAI's side is public, host candidates reach it) and gathering finishes in milliseconds.
+
+## hearing the interviewer again
+
+`LiveClient` puts an `AudioTrackSink` on the interviewer's track and writes it to a raw 24 khz tape in `cache/tapes`. transcript times and audio share the session clock, so `VoiceTape` lines the tape up on the first sound and snaps each turn to the nearest start of speech. while live the play button beside a bubble mutes the mic and plays on the call route, the newest turn only gets one once the interviewer has been quiet for about a second. when the interview is saved every interviewer turn is cut into `files/voice/<session id>/<turn>.wav`, voice is kept for the newest 30 interviews and delete all removes it.
+
+on the emulator `--ez scripted true` gives the fixture a soft tone where the interviewer talks, enough to try the buttons without speaking.

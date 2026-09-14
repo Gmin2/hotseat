@@ -99,6 +99,12 @@ fun PracticeScreen(state: Practice, onNeedMic: () -> Unit, modifier: Modifier = 
                         typing,
                         state.level,
                         Modifier.fillMaxSize().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 142.dp, bottom = 262.dp),
+                        replay = Replay(
+                            ready = if (phase == Phase.Scoring) emptySet() else shown.indices.filterTo(mutableSetOf()) { state.canReplay(it) },
+                            playing = state.speaking,
+                            progress = state.speakProgress,
+                            onReplay = state::replayVoice,
+                        ),
                         header = { ChatHeader(status, live = phase == Phase.Live && !state.muted, stats = stats) },
                     )
                 } else {

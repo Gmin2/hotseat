@@ -1,6 +1,22 @@
 package dev.mintu.hotseat.ui.practice
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -54,6 +70,10 @@ import dev.mintu.hotseat.ui.theme.loop
 private val YouBlue = Color(0xFF2F6CE5)
 private val InterviewerFill = Color(0xFFF2F5FB)
 
+/** Which interviewer turns can be heard again, the one playing and how far through it is. */
+@Immutable
+data class Replay(val ready: Set<Int> = emptySet(), val playing: Int? = null, val progress: Float = 0f, val onReplay: (Int) -> Unit = {})
+
 /** What the chat shows at the bottom while nobody's words have landed yet. */
 enum class Typing { None, Interviewer, Candidate }
 
@@ -62,7 +82,14 @@ enum class Typing { None, Interviewer, Candidate }
  * Deltas grow the last bubble in place, new turns spring in and the list follows the newest one.
  */
 @Composable
-fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modifier: Modifier = Modifier, header: @Composable () -> Unit = {}) {
+fun ChatBubbles(
+    turns: List<Turn>,
+    typing: Typing,
+    interviewerLevel: Float,
+    modifier: Modifier = Modifier,
+    replay: Replay = Replay(),
+    header: @Composable () -> Unit = {},
+) {
     val list = rememberLazyListState()
     val count = turns.size + if (typing == Typing.None) 0 else 1
     val lastLength = turns.lastOrNull()?.text?.length ?: 0
@@ -96,7 +123,14 @@ fun ChatBubbles(turns: List<Turn>, typing: Typing, interviewerLevel: Float, modi
     ) {
         itemsIndexed(turns, key = { i, t -> "${t.speaker}-${t.startMs}-$i" }) { i, turn ->
             val newest = i == turns.lastIndex
-            Bubble(turn.speaker, if (newest && turn.speaker == Speaker.interviewer) interviewerLevel else 0f) {
+            val canReplay = i in replay.ready
+            Bubble(
+                turn.speaker,
+                if (newest && turn.speaker == Speaker.interviewer) interviewerLevel else 0f,
+                trailing = if (canReplay || replay.playing == i) {
+                    { ReplayButton(replay.playing == i, if (replay.playing == i) replay.progress else 0f) { replay.onReplay(i) } }
+                } else null,
+            ) {
                 BasicText(turn.text.trim(), style = bubbleText(turn.speaker))
             }
         }
@@ -141,7 +175,7 @@ private fun bubbleText(speaker: Speaker) = HotseatTheme.type.meta.copy(
 )
 
 @Composable
-private fun Bubble(speaker: Speaker, level: Float, content: @Composable () -> Unit) {
+private fun Bubble(speaker: Speaker, level: Float, trailing: (@Composable () -> Unit)? = null, content: @Composable () -> Unit) {
     val p = HotseatTheme.palette
     val mine = speaker == Speaker.candidate
     val enter = remember { Animatable(0f) }
@@ -166,6 +200,7 @@ private fun Bubble(speaker: Speaker, level: Float, content: @Composable () -> Un
         }
         Box(
             Modifier
+                .weight(1f, fill = false)
                 .widthIn(max = 280.dp)
                 .shadow(if (mine) 8.dp else 0.dp, bubbleShape(mine), ambientColor = Color(0x552F6CE5), spotColor = Color(0x552F6CE5))
                 .clip(bubbleShape(mine))
@@ -173,6 +208,77 @@ private fun Bubble(speaker: Speaker, level: Float, content: @Composable () -> Un
                 .then(if (mine) Modifier else Modifier.border(1.dp, Color(0x0F1B3A7A), bubbleShape(mine)))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) { content() }
+        if (trailing != null) {
+            Spacer(Modifier.size(6.dp))
+            Box(Modifier.align(Alignment.CenterVertically)) { trailing() }
+        }
+    }
+}
+
+/** The small round button beside an interviewer bubble: play their words again, a ring fills while it plays. */
+@Composable
+private fun ReplayButton(playing: Boolean, progress: Float, onClick: () -> Unit) {
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { appear.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 380f)) }
+    val press = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    val ring by animateFloatAsState(progress, tween(90), label = "replay ring")
+    Box(
+        Modifier
+            .size(30.dp)
+            .graphicsLayer {
+                val s = appear.value * press.value
+                scaleX = s
+                scaleY = s
+                alpha = appear.value.coerceIn(0f, 1f)
+            }
+            .clip(CircleShape)
+            .background(if (playing) Color(0xFFEAF1FE) else Color.White)
+            .border(1.dp, if (playing) Color(0x332F6CE5) else Color(0xFFE2E7F1), CircleShape)
+            .clickable {
+                scope.launch {
+                    press.snapTo(0.82f)
+                    press.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 600f))
+                }
+                onClick()
+            }
+            .semantics { contentDescription = if (playing) "Stop the interviewer" else "Hear the interviewer again" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(30.dp)) {
+            if (playing) {
+                val inset = 2.dp.toPx()
+                drawArc(
+                    YouBlue,
+                    -90f,
+                    360f * ring,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - inset * 2, size.height - inset * 2),
+                    style = Stroke(2.dp.toPx(), cap = StrokeCap.Round),
+                )
+                val side = 8.dp.toPx()
+                drawRoundRect(
+                    YouBlue,
+                    Offset((size.width - side) / 2, (size.height - side) / 2),
+                    Size(side, side),
+                    CornerRadius(1.5.dp.toPx()),
+                )
+            } else {
+                val w = 9.dp.toPx()
+                val h = 10.dp.toPx()
+                val left = (size.width - w) / 2 + 1.dp.toPx()
+                val top = (size.height - h) / 2
+                val path = Path().apply {
+                    moveTo(left, top)
+                    lineTo(left + w, top + h / 2)
+                    lineTo(left, top + h)
+                    close()
+                }
+                drawPath(path, YouBlue, style = Fill)
+                drawPath(path, YouBlue, style = Stroke(1.5.dp.toPx(), join = StrokeJoin.Round))
+            }
+        }
     }
 }
 

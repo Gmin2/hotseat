@@ -11,6 +11,9 @@ import dev.mintu.hotseat.live.SessionResponse
 import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.Turn
 import dev.mintu.hotseat.live.WorkerException
+import dev.mintu.hotseat.live.Clip
+import dev.mintu.hotseat.live.VoicePlayback
+import dev.mintu.hotseat.live.VoiceSource
 import dev.mintu.hotseat.ui.components.Mood
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,8 +41,12 @@ class PracticeTest {
         var stopped = false
         var released = false
         var micMuted = false
+        var tape: VoiceSource? = null
+        override val voice get() = tape
+        var tapeAfterStart: VoiceSource? = null
         override suspend fun start(setup: InterviewSetup): SessionResponse {
             this.setup = setup
+            tape = tapeAfterStart
             failWith?.let { throw it }
             return SessionResponse("live_1", "answer", "Speak first", maxSeconds)
         }
@@ -55,6 +62,7 @@ class PracticeTest {
     private fun TestScope.harness(
         session: () -> FakeSession = { FakeSession() },
         score: suspend (String, Double, List<Turn>) -> LiveReport = { _, _, _ -> report },
+        player: VoicePlayback = VoicePlayback.None,
     ): Harness {
         val sessions = mutableListOf<FakeSession>()
         val scored = mutableListOf<Pair<String, List<Turn>>>()
@@ -65,6 +73,7 @@ class PracticeTest {
             score = { r, s, t -> scored += r to t; score(r, s, t) },
             onFinished = { finished += it },
             now = { testScheduler.currentTime },
+            player = player,
         )
         return Harness(practice, sessions, scored, finished)
     }
@@ -273,5 +282,94 @@ class PracticeTest {
         assertEquals(Phase.Idle, p.phase)
         assertNull(p.report)
         assertNotNull(p.setup)
+    }
+
+    private class FakePlayer : VoicePlayback {
+        val played = mutableListOf<Pair<Int, Boolean>>()
+        var at = 1f
+        var stops = 0
+        override fun play(clip: Clip, call: Boolean) { played += clip.pcm.size to call; at = 0f }
+        override fun position() = at
+        override fun stop() { stops++; at = 1f }
+    }
+
+    private val clips = object : VoiceSource {
+        override fun has(turns: List<Turn>, index: Int) = turns[index].speaker == Speaker.interviewer
+        override fun clip(turns: List<Turn>, index: Int) = if (has(turns, index)) Clip(ShortArray(100 + index), 24_000) else null
+    }
+
+    @Test
+    fun replayingDuringTheInterviewMutesTheMicUntilTheClipEnds() = runTest {
+        val player = FakePlayer()
+        val h = harness(session = { FakeSession().also { it.tapeAfterStart = clips } }, player = player)
+        val p = h.practice
+        p.start()
+        runCurrent()
+        val s = h.sessions.single()
+        s.say(Speaker.interviewer, "Which app would you like to design?", 0, 2000)
+        s.say(Speaker.candidate, "Chat", 3000, 3500)
+        runCurrent()
+
+        assertTrue(p.canReplay(0))
+        assertFalse(p.canReplay(1))
+        p.replayVoice(1)
+        assertTrue(player.played.isEmpty())
+
+        p.replayVoice(0)
+        runCurrent()
+        assertEquals(listOf(100 to true), player.played)
+        assertEquals(0, p.speaking)
+        assertTrue(s.micMuted)
+
+        player.at = 0.5f
+        advanceTimeBy(50)
+        assertEquals(0.5f, p.speakProgress)
+        player.at = 1f
+        advanceTimeBy(50)
+        assertNull(p.speaking)
+        assertFalse(s.micMuted)
+    }
+
+    @Test
+    fun tappingThePlayingTurnStopsItAndMuteStaysYours() = runTest {
+        val player = FakePlayer()
+        val h = harness(session = { FakeSession().also { it.tapeAfterStart = clips } }, player = player)
+        val p = h.practice
+        p.start()
+        runCurrent()
+        h.sessions.single().say(Speaker.interviewer, "Tell me about yourself", 0, 2000)
+        runCurrent()
+        p.toggleMute()
+        p.replayVoice(0)
+        runCurrent()
+        assertTrue(h.sessions.single().micMuted)
+        p.replayVoice(0)
+        assertNull(p.speaking)
+        assertEquals(1, player.stops)
+        // you muted yourself before, so it stays muted
+        assertTrue(h.sessions.single().micMuted)
+    }
+
+    @Test
+    fun finishedInterviewsCarryTheirVoiceAndPlayOnTheMediaRoute() = runTest {
+        val player = FakePlayer()
+        val h = harness(session = { FakeSession().also { it.tapeAfterStart = clips } }, player = player)
+        val p = h.practice
+        p.start()
+        runCurrent()
+        val s = h.sessions.single()
+        s.say(Speaker.interviewer, "Why this role?", 0, 1000)
+        s.say(Speaker.candidate, "I like mobile", 2000, 3000)
+        runCurrent()
+        p.end()
+        runCurrent()
+        assertEquals(clips, h.finished.single().voice)
+
+        p.backToIdle()
+        assertFalse(p.canReplay(0))
+        p.openFinished(h.finished.single())
+        p.replayVoice(0)
+        runCurrent()
+        assertEquals(100 to false, player.played.last())
     }
 }

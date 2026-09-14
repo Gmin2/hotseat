@@ -1,9 +1,11 @@
 package dev.mintu.hotseat.data
 
+import dev.mintu.hotseat.live.Clip
 import dev.mintu.hotseat.live.LiveReport
 import dev.mintu.hotseat.live.ReportAnswer
 import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.Turn
+import dev.mintu.hotseat.live.VoiceSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -113,5 +115,32 @@ class StoreTest {
         assertEquals("Android technical", row.title)
         assertEquals("Android engineer · 10 min", row.subtitle)
         assertEquals(listOf(70), row.trend)
+    }
+
+    @Test
+    fun keepsVoiceForAnInterviewAndDeletesItWithTheData() {
+        val file = File(folder.root, "hotseat.json")
+        val store = Store(file)
+        val s = session("v", 70, LocalDate.of(2026, 9, 15))
+        store.addSession(s)
+        val source = object : VoiceSource {
+            override fun has(turns: List<Turn>, index: Int) = true
+            override fun clip(turns: List<Turn>, index: Int) = Clip(ShortArray(240) { 5 }, 24_000)
+        }
+        store.saveVoice("v", s.turns, source)
+
+        val voice = store.voice("v")!!
+        assertTrue(voice.has(s.turns, 0))
+        // only the interviewer turn gets a clip
+        assertFalse(voice.has(s.turns, 1))
+        assertEquals(240, voice.clip(s.turns, 0)!!.pcm.size)
+
+        store.deleteSession("v")
+        assertEquals(null, store.voice("v"))
+
+        store.addSession(s)
+        store.saveVoice("v", s.turns, source)
+        store.deleteAll()
+        assertFalse(File(folder.root, "voice").exists())
     }
 }

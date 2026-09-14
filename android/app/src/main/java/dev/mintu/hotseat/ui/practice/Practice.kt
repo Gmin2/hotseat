@@ -17,6 +17,8 @@ import dev.mintu.hotseat.live.LiveSession
 import dev.mintu.hotseat.live.Speaker
 import dev.mintu.hotseat.live.Transcript
 import dev.mintu.hotseat.live.Turn
+import dev.mintu.hotseat.live.VoicePlayback
+import dev.mintu.hotseat.live.VoiceSource
 import dev.mintu.hotseat.live.WorkerException
 import dev.mintu.hotseat.ui.components.Mood
 import kotlinx.coroutines.CancellationException
@@ -35,7 +37,7 @@ val difficultyKeys = listOf("easy", "medium", "hard")
 val styleKeys = listOf("friendly", "sharp")
 
 /** A finished interview, what gets saved and what the report screens read. */
-data class Finished(val roundIndex: Int, val seconds: Double, val turns: List<Turn>, val report: LiveReport)
+data class Finished(val roundIndex: Int, val seconds: Double, val turns: List<Turn>, val report: LiveReport, val voice: VoiceSource? = null)
 
 /**
  * The practice flow. In live mode a [LiveSession] carries the real interview and [score] turns the transcript into a report,
@@ -48,6 +50,7 @@ class Practice(
     private val score: suspend (round: String, seconds: Double, turns: List<Turn>) -> LiveReport,
     private val onFinished: (Finished) -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis,
+    private val player: VoicePlayback = VoicePlayback.None,
 ) {
     var phase by mutableStateOf(Phase.Idle)
         private set
@@ -80,6 +83,16 @@ class Practice(
         private set
     var step by mutableStateOf(ConnectStep.Idle)
         private set
+
+    /** Where the interviewer's voice comes from for the replay buttons in the chat. */
+    var voice by mutableStateOf<VoiceSource?>(null)
+        private set
+    /** The turn whose voice is playing, and how far through it is. */
+    var speaking by mutableStateOf<Int?>(null)
+        private set
+    var speakProgress by mutableFloatStateOf(0f)
+        private set
+    private var speakJob: Job? = null
 
     private var session: LiveSession? = null
     private var jobs = mutableListOf<Job>()
@@ -145,6 +158,8 @@ class Practice(
 
     private fun reset() {
         cancelJobs()
+        stopVoice()
+        voice = null
         turns = emptyList()
         elapsed = 0
         report = null
@@ -177,6 +192,8 @@ class Practice(
         jobs += scope.launch {
             try {
                 val res = live.start(setup)
+                // the session makes its tape while starting, before any audio arrives
+                voice = live.voice
                 limitMs = res.maxSeconds * 1000L
                 startedAt = now()
                 phase = Phase.Live
@@ -222,6 +239,7 @@ class Practice(
         if (phase != Phase.Live) return
         val live = session
         session = null
+        stopVoice()
         phase = Phase.Scoring
         val seconds = elapsed / 1000.0
         cancelJobs()
@@ -253,12 +271,51 @@ class Practice(
             report = result
             elapsed = totalMs
             phase = Phase.Report
-            onFinished(Finished(round, seconds, turns, result))
+            onFinished(Finished(round, seconds, turns, result, voice))
         } catch (e: WorkerException) {
             fail(if (e.status == 429) "Scoring is busy, try again in a minute." else "Scoring failed (${e.message}). Tap the arrow to retry.", keepTurns = true)
         } catch (e: IOException) {
             fail("Could not reach Hotseat to score this. Tap the arrow to retry.", keepTurns = true)
         }
+    }
+
+    fun canReplay(index: Int): Boolean = voice?.has(turns, index) == true
+
+    /** Plays the interviewer's own voice for a turn again, tapping the one that is playing stops it. */
+    fun replayVoice(index: Int) {
+        if (speaking == index) {
+            stopVoice()
+            return
+        }
+        stopVoice()
+        val clip = voice?.clip(turns, index) ?: return
+        val call = phase == Phase.Live
+        // keep the interviewer from hearing its own words come back through the mic
+        if (call && !muted) session?.setMuted(true)
+        player.play(clip, call)
+        speaking = index
+        speakProgress = 0f
+        speakJob = scope.launch {
+            while (true) {
+                speakProgress = player.position()
+                if (speakProgress >= 1f) break
+                delay(40)
+            }
+            // stopping early goes through stopVoice, this is only the clip running out
+            speakJob = null
+            stopVoice()
+        }
+    }
+
+    private fun stopVoice() {
+        speakJob?.cancel()
+        speakJob = null
+        if (speaking != null) {
+            player.stop()
+            if (phase == Phase.Live && !muted) session?.setMuted(false)
+        }
+        speaking = null
+        speakProgress = 0f
     }
 
     fun micDenied() = fail("Hotseat needs the microphone to interview you. Allow it and tap play again.")
@@ -307,6 +364,7 @@ class Practice(
         round = finished.roundIndex
         turns = finished.turns
         report = finished.report
+        voice = finished.voice
         elapsed = totalMs
         phase = Phase.Report
     }
@@ -319,12 +377,14 @@ class Practice(
 
     fun dispose() {
         cancelJobs()
+        stopVoice()
         session?.release()
         session = null
     }
 
     private fun fail(message: String, keepTurns: Boolean = false) {
         cancelJobs()
+        stopVoice()
         session = null
         if (!keepTurns) turns = emptyList()
         interviewerLevel = 0f
